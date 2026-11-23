@@ -1,0 +1,5 @@
+[23-Nov-2026 10:31:57 Europe/Berlin] PHP Parse error:  syntax error, unexpected single-quoted string " && ctype_digit((string)$categ...", expecting "]" in C:\XAMPP\htdocs\event-platform\app\models\Event.php on line 35
+[23-Nov-2026 10:31:59 Europe/Berlin] PHP Parse error:  syntax error, unexpected single-quoted string " && ctype_digit((string)$categ...", expecting "]" in C:\XAMPP\htdocs\event-platform\app\models\Event.php on line 35
+[23-Nov-2026 10:32:02 Europe/Berlin] PHP Parse error:  syntax error, unexpected single-quoted string " && ctype_digit((string)$categ...", expecting "]" in C:\XAMPP\htdocs\event-platform\app\models\Event.php on line 35
+[23-Nov-2026 10:33:47 Europe/Berlin] PHP Parse error:  syntax error, unexpected single-quoted string " && ctype_digit((string)$categ...", expecting "]" in C:\XAMPP\htdocs\event-platform\app\models\Event.php on line 35
+[23-Nov-2026 10:33:48 Europe/Berlin] PHP Parse error:  syntax error, unexpected single-quoted string " && ctype_digit((string)$categ...", expecting "]" in C:\XAMPP\htdocs\event-platform\app\models\Event.php on line 35

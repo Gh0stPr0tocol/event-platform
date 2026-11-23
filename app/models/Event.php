@@ -1,0 +1,224 @@
+<?php
+
+class Event
+{
+    public function __construct(private PDO $pdo) {}
+
+    public function upcoming(int $limit = 3): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
+                    GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                     WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
+             FROM events e
+             JOIN categories c ON c.id = e.category_id
+             JOIN venues v ON v.id = e.venue_id
+             JOIN regions r ON r.id = v.region_id
+             WHERE e.event_date >= CURDATE()
+             ORDER BY e.event_date ASC, e.start_time ASC
+             LIMIT :limit'
+        );
+        $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $statement->execute();
+        return $statement->fetchAll();
+    }
+
+    public function search(string $keyword = '', int|string $regionId = '', int|string $categoryId = ''): array
+    {
+        $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
+                       GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                        WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
+                FROM events e
+                JOIN categories c ON c.id = e.category_id
+                JOIN venues v ON v.id = e.venue_id
+                JOIN regions r ON r.id = v.region_id
+                WHERE e.event_date >= CURDATE()';
+        $params = [];
+
+        if ($keyword !== '') {
+            $sql .= ' AND (e.title LIKE :keyword_title OR e.description LIKE :keyword_description)';
+            $params['keyword_title'] = '%' . $keyword . '%';
+            $params['keyword_description'] = '%' . $keyword . '%';
+        }
+        if ($regionId !== '' && ctype_digit((string) $regionId)) {
+            $sql .= ' AND r.id = :region_id';
+            $params['region_id'] = (int) $regionId;
+        }
+        if ($categoryId !== '' && ctype_digit((string) $categoryId)) {
+            $sql .= ' AND c.id = :category_id';
+            $params['category_id'] = (int) $categoryId;
+        }
+
+        $sql .= ' ORDER BY e.event_date ASC, e.start_time ASC';
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($params);
+        return $statement->fetchAll();
+    }
+
+    public function list(array $filters = [], int $page = 1, int $perPage = 10): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty(trim((string) ($filters['search'] ?? '')))) {
+            $where[] = 'e.title LIKE :search';
+            $params['search'] = '%' . trim((string) $filters['search']) . '%';
+        }
+        if (!empty($filters['category_id'])) {
+            $where[] = 'e.category_id = :category_id';
+            $params['category_id'] = (int) $filters['category_id'];
+        }
+        if (!empty($filters['region_id'])) {
+            $where[] = 'v.region_id = :region_id';
+            $params['region_id'] = (int) $filters['region_id'];
+        }
+        if (($filters['time'] ?? '') === 'upcoming') {
+            $where[] = 'e.event_date >= CURDATE()';
+        }
+        if (($filters['time'] ?? '') === 'past') {
+            $where[] = 'e.event_date < CURDATE()';
+        }
+
+        $whereSql = implode(' AND ', $where);
+        $base = ' FROM events e
+                  JOIN categories c ON c.id = e.category_id
+                  JOIN venues v ON v.id = e.venue_id
+                  JOIN regions r ON r.id = v.region_id
+                  WHERE ' . $whereSql;
+
+        $count = $this->pdo->prepare('SELECT COUNT(*)' . $base);
+        foreach ($params as $key => $value) {
+            $count->bindValue(':' . $key, $value);
+        }
+        $count->execute();
+
+        $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
+                       GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                        WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining'
+             . $base . ' ORDER BY e.event_date ASC, e.start_time ASC LIMIT :limit OFFSET :offset';
+        $statement = $this->pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $statement->bindValue(':' . $key, $value);
+        }
+        $statement->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $statement->execute();
+
+        return ['items' => $statement->fetchAll(), 'total' => (int) $count->fetchColumn()];
+    }
+
+    public function find(int $id): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT e.*, c.name AS category_name, v.name AS venue_name, v.address, r.name AS region_name,
+                    GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                     WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
+             FROM events e
+             JOIN categories c ON c.id = e.category_id
+             JOIN venues v ON v.id = e.venue_id
+             JOIN regions r ON r.id = v.region_id
+             WHERE e.id = :id LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $row = $statement->fetch();
+        return $row ?: null;
+    }
+
+    public function create(array $data): int
+    {
+        $statement = $this->pdo->prepare(
+            'INSERT INTO events (title, description, event_date, start_time, capacity, image, category_id, venue_id, created_by)
+             VALUES (:title, :description, :event_date, :start_time, :capacity, :image, :category_id, :venue_id, :created_by)'
+        );
+        $statement->execute($data);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function update(int $id, array $data): void
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE events SET title=:title, description=:description, event_date=:event_date,
+             start_time=:start_time, capacity=:capacity, image=:image, category_id=:category_id,
+             venue_id=:venue_id WHERE id=:id'
+        );
+        $statement->execute([
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'event_date' => $data['event_date'],
+            'start_time' => $data['start_time'],
+            'capacity' => $data['capacity'],
+            'image' => $data['image'],
+            'category_id' => $data['category_id'],
+            'venue_id' => $data['venue_id'],
+            'id' => $id,
+        ]);
+    }
+
+    public function delete(int $id): void
+    {
+        $statement = $this->pdo->prepare('DELETE FROM events WHERE id = :id');
+        $statement->execute(['id' => $id]);
+    }
+
+    public function registrationCount(int $id): int
+    {
+        $statement = $this->pdo->prepare('SELECT COUNT(*) FROM registrations WHERE event_id = :id');
+        $statement->execute(['id' => $id]);
+        return (int) $statement->fetchColumn();
+    }
+
+    public function confirmedCount(int $id): int
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM registrations WHERE event_id = :id AND status = 'confirmed'"
+        );
+        $statement->execute(['id' => $id]);
+        return (int) $statement->fetchColumn();
+    }
+
+    public function localUpcoming(int $regionId, int $excludeUserId, int $limit = 4): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
+                    GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                     WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
+             FROM events e
+             JOIN categories c ON c.id = e.category_id
+             JOIN venues v ON v.id = e.venue_id
+             JOIN regions r ON r.id = v.region_id
+             WHERE e.event_date >= CURDATE()
+               AND v.region_id = :region
+               AND NOT EXISTS (
+                   SELECT 1 FROM registrations x
+                   WHERE x.event_id = e.id AND x.user_id = :uid
+                     AND x.status IN ("confirmed", "waitlisted")
+               )
+             ORDER BY e.event_date ASC, e.start_time ASC
+             LIMIT :limit'
+        );
+        $statement->bindValue(':region', $regionId, PDO::PARAM_INT);
+        $statement->bindValue(':uid', $excludeUserId, PDO::PARAM_INT);
+        $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $statement->execute();
+        return $statement->fetchAll();
+    }
+
+    public function statistics(): array
+    {
+        $total = (int) $this->pdo->query('SELECT COUNT(*) FROM events')->fetchColumn();
+        $upcoming = (int) $this->pdo->query('SELECT COUNT(*) FROM events WHERE event_date >= CURDATE()')->fetchColumn();
+        $capacity = (int) $this->pdo->query('SELECT COALESCE(SUM(capacity), 0) FROM events WHERE event_date >= CURDATE()')->fetchColumn();
+        $filled = (int) $this->pdo->query(
+            "SELECT COUNT(*) FROM registrations r JOIN events e ON e.id = r.event_id
+             WHERE e.event_date >= CURDATE() AND r.status = 'confirmed'"
+        )->fetchColumn();
+        return [
+            'total' => $total,
+            'upcoming' => $upcoming,
+            'capacity' => $capacity,
+            'filled' => $filled,
+            'percent' => $capacity ? round($filled / $capacity * 100) : 0,
+        ];
+    }
+}
