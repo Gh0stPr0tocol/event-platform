@@ -55,6 +55,73 @@ class Event
         return $statement->fetchAll();
     }
 
+    public function filteredSearch(
+        string $keyword = '',
+        int|string $regionId = '',
+        int|string $categoryId = '',
+        string $dateFrom = '',
+        string $dateTo = '',
+        int $page = 1,
+        int $perPage = 9
+    ): array {
+        $page = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+        $where = ['e.event_date >= CURDATE()'];
+        $params = [];
+
+        if ($keyword !== '') {
+            $where[] = '(e.title LIKE :keyword_title OR e.description LIKE :keyword_description)';
+            $params['keyword_title'] = '%' . $keyword . '%';
+            $params['keyword_description'] = '%' . $keyword . '%';
+        }
+        if ($regionId !== '' && ctype_digit((string) $regionId)) {
+            $where[] = 'r.id = :region_id';
+            $params['region_id'] = (int) $regionId;
+        }
+        if ($categoryId !== '' && ctype_digit((string) $categoryId)) {
+            $where[] = 'c.id = :category_id';
+            $params['category_id'] = (int) $categoryId;
+        }
+        if ($dateFrom !== '' && strtotime($dateFrom) !== false) {
+            $where[] = 'e.event_date >= :date_from';
+            $params['date_from'] = date('Y-m-d', strtotime($dateFrom));
+        }
+        if ($dateTo !== '' && strtotime($dateTo) !== false) {
+            $where[] = 'e.event_date <= :date_to';
+            $params['date_to'] = date('Y-m-d', strtotime($dateTo));
+        }
+
+        $join = ' FROM events e
+                  JOIN categories c ON c.id = e.category_id
+                  JOIN venues v ON v.id = e.venue_id
+                  JOIN regions r ON r.id = v.region_id
+                  WHERE ' . implode(' AND ', $where);
+
+        $countStatement = $this->pdo->prepare('SELECT COUNT(*)' . $join);
+        $countStatement->execute($params);
+        $total = (int) $countStatement->fetchColumn();
+
+        $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
+                       GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                        WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining'
+             . $join . ' ORDER BY e.event_date ASC, e.start_time ASC
+                        LIMIT :limit OFFSET :offset';
+        $statement = $this->pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $statement->bindValue(':' . $key, $value);
+        }
+        $statement->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $statement->execute();
+
+        return [
+            'items' => $statement->fetchAll(),
+            'total' => $total,
+            'pages' => max(1, (int) ceil($total / $perPage)),
+            'page' => $page,
+        ];
+    }
+
     public function list(array $filters = [], int $page = 1, int $perPage = 10): array
     {
         $offset = ($page - 1) * $perPage;

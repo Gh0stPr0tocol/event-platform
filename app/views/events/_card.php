@@ -1,7 +1,12 @@
 <article class="event-card">
     <a class="event-card-image" href="<?= e(BASE_URL) ?>/?page=events&amp;action=show&amp;id=<?= (int) $event['id'] ?>" aria-label="View <?= e($event['title']) ?>">
-        <?php if (!empty($event['image'])): ?>
-            <img src="<?= e(UPLOAD_URL . '/' . $event['image']) ?>" alt="">
+        <?php
+        $imageFile = !empty($event['image'])
+            ? APP_ROOT . '/public/images/events/' . basename((string) $event['image'])
+            : '';
+        ?>
+        <?php if ($imageFile !== '' && is_file($imageFile)): ?>
+            <img src="<?= e(UPLOAD_URL . '/' . rawurlencode(basename((string) $event['image']))) ?>" alt="">
         <?php else: ?>
             <div class="image-placeholder" aria-hidden="true"><span><?= e(substr($event['category_name'], 0, 1)) ?></span></div>
         <?php endif; ?>
@@ -10,6 +15,9 @@
         <div class="card-badges">
             <span class="category-tag"><?= e($event['category_name']) ?></span>
             <span class="free-tag">FREE</span>
+            <?php if ((int) $event['seats_remaining'] === 0): ?>
+                <span class="full-tag">Full · Join waitlist</span>
+            <?php endif; ?>
         </div>
         <h3><a href="<?= e(BASE_URL) ?>/?page=events&amp;action=show&amp;id=<?= (int) $event['id'] ?>"><?= e($event['title']) ?></a></h3>
         <p class="event-meta"><?= e(formatDate($event['event_date'])) ?> · <?= e(formatTime($event['start_time'])) ?></p>

@@ -11,5 +11,7 @@
         </nav>
     </div>
 </footer>
+<script defer src="<?= e(BASE_URL) ?>/js/validation.js"></script>
+<script defer src="<?= e(BASE_URL) ?>/js/nav.js"></script>
 </body>
 </html>

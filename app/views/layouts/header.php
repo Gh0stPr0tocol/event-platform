@@ -17,22 +17,23 @@
             <span>tukutane.</span>
         </a>
         <nav class="main-nav" aria-label="Main navigation">
-            <a href="<?= e(BASE_URL) ?>/?page=events&amp;action=index">Explore events</a>
-            <a href="<?= e(BASE_URL) ?>/?page=home&amp;action=index#how-it-works">How it works</a>
+            <a class="nav-link<?= isActiveNav('events') ? ' is-active' : '' ?>"<?= isActiveNav('events') ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=events&amp;action=index">Explore events</a>
+            <a class="nav-link" data-nav-anchor="how-it-works" href="<?= e(BASE_URL) ?>/?page=home&amp;action=index#how-it-works">How it works</a>
             <?php if (isLoggedIn()):
                 $user = currentUser(); ?>
                 <?php if ($user['role'] === 'admin'): ?>
-                    <a href="<?= e(BASE_URL) ?>/?page=admin&amp;action=dashboard">Dashboard</a>
+                    <a class="nav-link<?= isActiveNav('dashboard', ['index']) ? ' is-active' : '' ?>"<?= isActiveNav('dashboard', ['index']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=admin&amp;action=dashboard">Dashboard</a>
                 <?php endif; ?>
                 <?php if ($user['role'] !== 'admin'): ?>
-                    <a href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=index">Dashboard</a>
-                    <a href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=registrations">My registrations</a>
-                    <a href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=profile">Profile</a>
+                    <a class="nav-link<?= isActiveNav('dashboard', ['index']) ? ' is-active' : '' ?>"<?= isActiveNav('dashboard', ['index']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=index">Dashboard</a>
+                    <?php $registrationsActive = isActiveNav('dashboard', ['registrations']) || isActiveNav('registrations'); ?>
+                    <a class="nav-link<?= $registrationsActive ? ' is-active' : '' ?>"<?= $registrationsActive ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=registrations">My registrations</a>
+                    <a class="nav-link<?= isActiveNav('dashboard', ['profile']) ? ' is-active' : '' ?>"<?= isActiveNav('dashboard', ['profile']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=profile">Profile</a>
                 <?php endif; ?>
                 <a class="nav-button nav-button-logout" href="<?= e(BASE_URL) ?>/?page=auth&amp;action=logout">Logout</a>
             <?php else: ?>
-                <a href="<?= e(BASE_URL) ?>/?page=auth&amp;action=login">Log in</a>
-                <a class="nav-button" href="<?= e(BASE_URL) ?>/?page=auth&amp;action=register">Create account</a>
+                <a class="nav-link<?= isActiveNav('auth', ['login']) ? ' is-active' : '' ?>"<?= isActiveNav('auth', ['login']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=auth&amp;action=login">Log in</a>
+                <a class="nav-button btn-nav<?= isActiveNav('auth', ['register']) ? ' is-active' : '' ?>"<?= isActiveNav('auth', ['register']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=auth&amp;action=register">Create account</a>
             <?php endif; ?>
         </nav>
     </div>

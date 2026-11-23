@@ -32,3 +32,4 @@
         <?php if ($flash): ?>
             <div class="flash flash-<?= e($flash['type']) ?>" role="status"><?= e($flash['message']) ?></div>
         <?php endif; ?>
+        <script defer src="<?= e(BASE_URL) ?>/js/validation.js"></script>

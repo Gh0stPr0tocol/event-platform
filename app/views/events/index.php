@@ -4,6 +4,11 @@ $isSearchPage = isset($events);
 $keyword = trim($_GET['keyword'] ?? '');
 $regionId = trim($_GET['region_id'] ?? '');
 $categoryId = trim($_GET['category_id'] ?? '');
+$dateFrom = trim($_GET['date_from'] ?? '');
+$dateTo = trim($_GET['date_to'] ?? '');
+$currentPage = $currentPage ?? 1;
+$eventPages = $eventPages ?? 1;
+$eventTotal = $eventTotal ?? 0;
 require APP_ROOT . '/app/views/layouts/header.php';
 ?>
 
@@ -54,6 +59,14 @@ require APP_ROOT . '/app/views/layouts/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="search-field">
+                <label for="date_from">From date</label>
+                <input id="date_from" name="date_from" type="date" value="<?= e($dateFrom) ?>">
+            </div>
+            <div class="search-field">
+                <label for="date_to">To date</label>
+                <input id="date_to" name="date_to" type="date" value="<?= e($dateTo) ?>">
+            </div>
             <button class="button button-primary search-button" type="submit">Search</button>
         </form>
     </div>
@@ -67,7 +80,7 @@ require APP_ROOT . '/app/views/layouts/header.php';
                 <p class="eyebrow">Explore</p>
                 <h2>Events</h2>
             </div>
-            <span class="result-count"><?= count($events) ?> <?= count($events) === 1 ? 'event' : 'events' ?></span>
+            <span class="result-count"><?= (int) $eventTotal ?> <?= (int) $eventTotal === 1 ? 'event' : 'events' ?></span>
         </div>
         <?php if ($events): ?>
             <div class="event-grid">
@@ -80,6 +93,23 @@ require APP_ROOT . '/app/views/layouts/header.php';
                 <h3>No events found</h3>
                 <p>Try a different keyword, county or category.</p>
             </div>
+        <?php endif; ?>
+        <?php if ($eventPages > 1):
+            $filterQuery = http_build_query([
+                'page' => 'events',
+                'action' => 'index',
+                'keyword' => $keyword,
+                'region_id' => $regionId,
+                'category_id' => $categoryId,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ]);
+        ?>
+            <nav class="pagination" aria-label="Event pages">
+                <?php for ($i = 1; $i <= $eventPages; $i++): ?>
+                    <a class="<?= $i === $currentPage ? 'active' : '' ?>" href="<?= e(BASE_URL) ?>/index.php?<?= e($filterQuery) ?>&amp;list_page=<?= $i ?>"><?= $i ?></a>
+                <?php endfor; ?>
+            </nav>
         <?php endif; ?>
     </div>
 </section>

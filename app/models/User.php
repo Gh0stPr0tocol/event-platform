@@ -23,7 +23,7 @@ class User
     {
         $statement = $this->pdo->prepare(
             'INSERT INTO users (name, email, phone, password_hash, role, region_id)
-             VALUES (:name, :email, :phone, :password_hash, \'attendee\', :region_id)'
+            VALUES (:name, :email, :phone, :password_hash, \'attendee\', :region_id)'
         );
         $statement->execute([
             'name' => $data['name'],

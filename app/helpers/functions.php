@@ -66,3 +66,19 @@ function clearOldInput(): void
 {
     unset($_SESSION['old_input']);
 }
+
+function isActiveNav(string $page, ?array $actions = null): bool
+{
+    $currentPage = isset($_GET['page']) && is_string($_GET['page'])
+        ? $_GET['page']
+        : 'home';
+    $currentAction = isset($_GET['action']) && is_string($_GET['action'])
+        ? $_GET['action']
+        : 'index';
+
+    if ($currentPage !== $page) {
+        return false;
+    }
+
+    return $actions === null || in_array($currentAction, $actions, true);
+}

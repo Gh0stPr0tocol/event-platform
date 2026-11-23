@@ -10,7 +10,7 @@ class EventController
 
     public function home(): void
     {
-        $upcomingEvents = $this->events->upcoming(3);
+        $upcomingEvents = $this->events->upcoming(6);
         $regions = $this->regions->all();
         $categories = $this->categories->all();
         require APP_ROOT . '/app/views/events/index.php';
@@ -21,7 +21,22 @@ class EventController
         $keyword = trim($_GET['keyword'] ?? '');
         $regionId = trim($_GET['region_id'] ?? '');
         $categoryId = trim($_GET['category_id'] ?? '');
-        $events = $this->events->search($keyword, $regionId, $categoryId);
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo = trim($_GET['date_to'] ?? '');
+        $page = max(1, (int) ($_GET['list_page'] ?? 1));
+        $eventPage = $this->events->filteredSearch(
+            $keyword,
+            $regionId,
+            $categoryId,
+            $dateFrom,
+            $dateTo,
+            $page,
+            9
+        );
+        $events = $eventPage['items'];
+        $eventTotal = $eventPage['total'];
+        $eventPages = $eventPage['pages'];
+        $currentPage = $eventPage['page'];
         $regions = $this->regions->all();
         $categories = $this->categories->all();
         require APP_ROOT . '/app/views/events/index.php';
