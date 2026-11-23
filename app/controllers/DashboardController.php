@@ -15,10 +15,10 @@ class DashboardController
         $user=$this->users->findById((int)currentUser()['id']);
         $upcoming=$this->registrations->findByUser((int)$user['id'],1,100,'upcoming');
         $past=$this->registrations->findByUser((int)$user['id'],1,100,'past');
-        $upcomingCount=count(array_filter($upcoming['items'],fn($r)=>in_array($r['status'],[STATUS_CONFIRMED,STATUS_WAITLISTED],true)));
-        $attendedCount=count(array_filter($past['items'],fn($r)=>$r['status']===STATUS_ATTENDED));
-        $cancelledCount=count(array_filter($upcoming['items'],fn($r)=>$r['status']===STATUS_CANCELLED))
-            +count(array_filter($past['items'],fn($r)=>$r['status']===STATUS_CANCELLED));
+        $stats=$this->registrations->statsForUser((int)$user['id']);
+        $upcomingCount=$stats['upcoming'];
+        $attendedCount=$stats['attended'];
+        $cancelledCount=$stats['cancelled'];
         $next=null;
         foreach($upcoming['items'] as $registration) {
             if(in_array($registration['status'],[STATUS_CONFIRMED,STATUS_WAITLISTED],true)) {$next=$registration;break;}
@@ -58,6 +58,7 @@ class DashboardController
         $errors=[];
         validateRequired($data['name'],'name',$errors); validateRequired($data['phone'],'phone',$errors);
         validatePhone($data['phone'],$errors);
+        validateRequired($data['region_id'],'region',$errors);
         if(!$errors){
             try{
                 $this->users->updateProfile((int)currentUser()['id'],$data);

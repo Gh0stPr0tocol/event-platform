@@ -101,9 +101,12 @@ class AdminController
             $file=$_FILES['image'];
             $allowed=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp'];
             $mime=@getimagesize($file['tmp_name']);
+            $finfo=new finfo(FILEINFO_MIME_TYPE);
+            $realMime=$file['tmp_name']!==''?$finfo->file($file['tmp_name']):'';
+            $allowedMime=['image/jpeg','image/png','image/webp'];
             if(!is_uploaded_file($file['tmp_name']))$errors['image']='Invalid uploaded file.';
             elseif($file['size']>2*1024*1024)$errors['image']='Image must be 2 MB or smaller.';
-            elseif(!$mime||!isset($allowed[$mime[2]]))$errors['image']='Only JPG, PNG and WebP images are allowed.';
+            elseif(!$mime||!isset($allowed[$mime[2]])||!in_array($realMime,$allowedMime,true))$errors['image']='Only JPG, PNG and WebP images are allowed.';
             else{
                 $extension=$allowed[$mime[2]];$filename=bin2hex(random_bytes(16)).'.'.$extension;
                 $directory=APP_ROOT.'/public/images/events';
@@ -138,7 +141,8 @@ class AdminController
 
     public function categories(): void
     {
-        requireAdmin();$categories=$this->categories->all();$errors=[];$old=[];$editCategory=null;
+        requireAdmin();$page=max(1,(int)($_GET['page']??1));$categoryResult=$this->categories->list($page,10);
+        $categories=$categoryResult['items'];$categoryTotal=$categoryResult['total'];$errors=[];$old=[];$editCategory=null;
         $editId=filter_input(INPUT_GET,'edit',FILTER_VALIDATE_INT);
         if($editId)$editCategory=$this->categories->find($editId);
         require APP_ROOT.'/app/views/admin/categories.php';
@@ -174,13 +178,15 @@ class AdminController
         if(!verifyCsrfToken()){setFlash('error','Your session expired.');redirect('?page=admin&action=categories');}
         $id=filter_input(INPUT_POST,'category_id',FILTER_VALIDATE_INT);
         try{$this->categories->delete($id);setFlash('success','Category deleted.');}
-        catch(PDOException $exception){error_log($exception->getMessage());setFlash('error','This category is in use and cannot be deleted.');}
+        catch(DomainException $exception){setFlash('error',$exception->getMessage());}
+        catch(Throwable $exception){error_log($exception->getMessage());setFlash('error','We could not delete this category.');}
         redirect('?page=admin&action=categories');
     }
 
     public function venues(): void
     {
-        requireAdmin();$venues=$this->venues->all();$regions=$this->regions->all();$errors=[];$old=[];$editVenue=null;
+        requireAdmin();$page=max(1,(int)($_GET['page']??1));$venueResult=$this->venues->list($page,10);
+        $venues=$venueResult['items'];$venueTotal=$venueResult['total'];$regions=$this->regions->all();$errors=[];$old=[];$editVenue=null;
         $editId=filter_input(INPUT_GET,'edit',FILTER_VALIDATE_INT);if($editId)$editVenue=$this->venues->find($editId);
         require APP_ROOT.'/app/views/admin/venues.php';
     }
@@ -214,7 +220,8 @@ class AdminController
         if(!verifyCsrfToken()){setFlash('error','Your session expired.');redirect('?page=admin&action=venues');}
         $id=filter_input(INPUT_POST,'venue_id',FILTER_VALIDATE_INT);
         try{$this->venues->delete($id);setFlash('success','Venue deleted.');}
-        catch(PDOException $exception){error_log($exception->getMessage());setFlash('error','This venue is in use and cannot be deleted.');}
+        catch(DomainException $exception){setFlash('error',$exception->getMessage());}
+        catch(Throwable $exception){error_log($exception->getMessage());setFlash('error','We could not delete this venue.');}
         redirect('?page=admin&action=venues');
     }
 

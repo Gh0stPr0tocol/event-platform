@@ -59,8 +59,8 @@ class Registration
     {
         $offset = ($page - 1) * $perPage;
         $condition = $tab === 'past'
-            ? 'e.event_date < CURDATE()'
-            : 'e.event_date >= CURDATE()';
+            ? "(e.event_date < CURDATE() OR r.status IN ('attended','cancelled'))"
+            : "e.event_date >= CURDATE() AND r.status IN ('confirmed','waitlisted')";
         $sql = "SELECT r.*, e.title, e.event_date, e.start_time, e.capacity,
                        v.name AS venue_name, v.address, reg.name AS region_name
                 FROM registrations r
@@ -203,6 +203,26 @@ class Registration
         );
         $statement->execute(['eid' => $eventId]);
         return (int) $statement->fetchColumn();
+    }
+
+    public function statsForUser(int $userId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT
+                SUM(CASE WHEN r.status IN ('confirmed','waitlisted') AND e.event_date >= CURDATE() THEN 1 ELSE 0 END) AS upcoming_count,
+                SUM(CASE WHEN r.status = 'attended' THEN 1 ELSE 0 END) AS attended_count,
+                SUM(CASE WHEN r.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count
+             FROM registrations r
+             JOIN events e ON e.id = r.event_id
+             WHERE r.user_id = :uid"
+        );
+        $statement->execute(['uid' => $userId]);
+        $stats = $statement->fetch();
+        return [
+            'upcoming' => (int) ($stats['upcoming_count'] ?? 0),
+            'attended' => (int) ($stats['attended_count'] ?? 0),
+            'cancelled' => (int) ($stats['cancelled_count'] ?? 0),
+        ];
     }
 
     public function listAll(array $filters = [], int $page = 1, int $perPage = 10): array
