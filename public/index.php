@@ -31,6 +31,7 @@ $homeController = new HomeController(
     new Category($pdo),
     new Registration($pdo)
 );
+$guideController = new GuideController();
 
 $registrationController = new RegistrationController(
     new Registration($pdo),
@@ -82,6 +83,17 @@ switch ($page) {
             $eventController->saved();
         } elseif ($action === 'saved-import') {
             $eventController->importSaved();
+        } else {
+            $knownRoute = false;
+        }
+        break;
+    case 'guide':
+        if ($action === 'find-event') {
+            $guideController->findEvent();
+        } elseif ($action === 'register-free') {
+            $guideController->registerFree();
+        } elseif ($action === 'show-up') {
+            $guideController->showUp();
         } else {
             $knownRoute = false;
         }

@@ -57,8 +57,12 @@ class DashboardController
         ];
         $errors=[];
         validateRequired($data['name'],'name',$errors); validateRequired($data['phone'],'phone',$errors);
+        validateLength($data['name'],'name',2,100,$errors);
+        validateLength($data['phone'],'phone',0,20,$errors);
         validatePhone($data['phone'],$errors);
         validateRequired($data['region_id'],'region',$errors);
+        $regionId=filter_var($data['region_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($regionId===false||!$this->regions->find($regionId))$errors['region_id']='Choose a valid county.';
         if(!$errors){
             try{
                 $this->users->updateProfile((int)currentUser()['id'],$data);

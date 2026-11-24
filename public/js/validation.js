@@ -204,23 +204,28 @@ function showError(field, message) {
     const error = getOrCreateError(field);
     error.textContent = message;
     error.hidden = false;
+    error.setAttribute('role', 'alert');
     field.classList.remove('valid');
     field.classList.add('invalid');
     field.setAttribute('aria-invalid', 'true');
     const errorId = error.id || `error-${field.id || field.name}`;
     error.id = errorId;
-    field.setAttribute('aria-describedby',
-        [field.getAttribute('aria-describedby'), errorId].filter(Boolean).join(' ').trim()
-    );
+    const descriptions = new Set((field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+    descriptions.add(errorId);
+    field.setAttribute('aria-describedby', [...descriptions].join(' '));
 }
 
 function showSuccess(field) {
-    const error = field.parentElement.querySelector('[data-js-error]');
-    if (error) {
-        error.textContent = 'Looks good';
-        error.className = 'field-success';
-        error.hidden = false;
-    }
+    const feedback = getOrCreateError(field);
+    feedback.textContent = 'Looks good';
+    feedback.className = 'field-success';
+    feedback.hidden = false;
+    feedback.setAttribute('role', 'status');
+    const feedbackId = feedback.id || `error-${field.id || field.name}`;
+    feedback.id = feedbackId;
+    const descriptions = new Set((field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+    descriptions.add(feedbackId);
+    field.setAttribute('aria-describedby', [...descriptions].join(' '));
     field.classList.remove('invalid');
     field.classList.add('valid');
     field.setAttribute('aria-invalid', 'false');

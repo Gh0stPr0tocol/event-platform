@@ -9,14 +9,6 @@ class EventController
         private SavedEvent $savedEvents
     ) {}
 
-    public function home(): void
-    {
-        $upcomingEvents = $this->events->upcoming(6);
-        $regions = $this->regions->all();
-        $categories = $this->categories->all();
-        require APP_ROOT . '/app/views/events/index.php';
-    }
-
     public function index(): void
     {
         $keyword = $this->queryString('keyword', 200);

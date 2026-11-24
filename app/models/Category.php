@@ -6,13 +6,17 @@ class Category
 
     public function all(): array
     {
-        return $this->pdo->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
+        $statement = $this->pdo->prepare('SELECT id, name FROM categories ORDER BY name');
+        $statement->execute();
+        return $statement->fetchAll();
     }
 
     public function list(int $page = 1, int $perPage = 10): array
     {
         $offset = ($page - 1) * $perPage;
-        $count = (int) $this->pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn();
+        $countStatement = $this->pdo->prepare('SELECT COUNT(*) FROM categories');
+        $countStatement->execute();
+        $count = (int) $countStatement->fetchColumn();
         $statement = $this->pdo->prepare(
             'SELECT c.*,
                     (SELECT COUNT(*) FROM events e WHERE e.category_id = c.id) AS event_count

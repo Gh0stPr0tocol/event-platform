@@ -29,7 +29,6 @@ $venueData = array_map(
     <form class="admin-form" method="post" enctype="multipart/form-data" action="<?= e(BASE_URL) ?>/?page=admin&amp;action=<?= $event ? 'eventUpdate' : 'eventStore' ?>">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
         <?php if ($event): ?><input type="hidden" name="event_id" value="<?= (int) $event['id'] ?>"><?php endif; ?>
-        <input type="hidden" name="existing_image" value="<?= e($event['image'] ?? '') ?>">
         <?php if (!empty($errors['general'])): ?><div class="form-error"><?= e($errors['general']) ?></div><?php endif; ?>
         <div class="form-field">
             <label for="title">Title</label>

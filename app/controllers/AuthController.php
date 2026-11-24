@@ -31,6 +31,14 @@ class AuthController
                 $old,
                 fn(string $email): bool => $this->users->emailExists($email)
             );
+            $regionId = filter_var(
+                $old['region_id'],
+                FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 1]]
+            );
+            if ($regionId === false || !$this->regions->find($regionId)) {
+                $errors['region_id'] = 'Choose a valid county.';
+            }
             $errors = array_merge($errors, $csrfErrors);
             setOldInput([
                 'name' => $old['name'],
@@ -109,6 +117,11 @@ class AuthController
 
     public function logout(): void
     {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken()) {
+            setFlash('error', 'Your session expired. Please try again.');
+            redirect('?page=auth&action=login');
+        }
+
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();

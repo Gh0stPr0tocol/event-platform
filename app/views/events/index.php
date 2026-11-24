@@ -301,25 +301,84 @@ require APP_ROOT . '/app/views/layouts/header.php';
         <h2>Show up. Get involved.</h2>
         <div class="steps-grid">
             <article class="step-card" data-reveal>
-                <span class="step-number">1</span>
-                <h3>Find an event</h3>
-                <p>Search by keyword, county or category to find what matters to you.</p>
+                <a class="step-card-link" href="<?= e(BASE_URL) ?>/?page=guide&amp;action=find-event">
+                    <span class="step-number">1</span>
+                    <h3>Find an event</h3>
+                    <p>Search by keyword, county, category or date to find what matters to you.</p>
+                    <span class="step-card-cta">Read the guide <span aria-hidden="true">→</span></span>
+                </a>
             </article>
             <article class="step-card" data-reveal>
-                <span class="step-number">2</span>
-                <h3>Register free</h3>
-                <p>Create an account and reserve your place in a few quick steps.</p>
+                <a class="step-card-link" href="<?= e(BASE_URL) ?>/?page=guide&amp;action=register-free">
+                    <span class="step-number">2</span>
+                    <h3>Register free</h3>
+                    <p>Create an account, then reserve your place in a few quick steps.</p>
+                    <span class="step-card-cta">Read the guide <span aria-hidden="true">→</span></span>
+                </a>
             </article>
             <article class="step-card" data-reveal>
-                <span class="step-number">3</span>
-                <h3>Show up</h3>
-                <p>Meet your neighbours and contribute to something meaningful.</p>
+                <a class="step-card-link" href="<?= e(BASE_URL) ?>/?page=guide&amp;action=show-up">
+                    <span class="step-number">3</span>
+                    <h3>Show up</h3>
+                    <p>Check your registration, meet your neighbours and contribute.</p>
+                    <span class="step-card-cta">Read the guide <span aria-hidden="true">→</span></span>
+                </a>
+            </article>
+        </div>
+
+        <div class="step-details" aria-label="More about each step">
+            <article class="step-detail" id="step-find-event" data-reveal>
+                <span class="step-detail-number" aria-hidden="true">01</span>
+                <div class="step-detail-content">
+                    <p class="eyebrow">Start with what matters to you</p>
+                    <h3>Find an event</h3>
+                    <p>Search with a keyword, choose a county or category, and narrow the dates to find something that fits your interests and schedule.</p>
+                    <ul>
+                        <li>Browse category chips for a quick starting point.</li>
+                        <li>Open an event to check its time, venue and seats available.</li>
+                        <li>Save interesting events to come back to later.</li>
+                    </ul>
+                    <a class="text-link" href="<?= e(BASE_URL) ?>/?page=events&amp;action=index">Explore events <span aria-hidden="true">→</span></a>
+                </div>
+            </article>
+            <article class="step-detail" id="step-register-free" data-reveal>
+                <span class="step-detail-number" aria-hidden="true">02</span>
+                <div class="step-detail-content">
+                    <p class="eyebrow">A place is one click away</p>
+                    <h3>Register free</h3>
+                    <p>Create an account or log in, then choose Register on the event page. Events are free; when all confirmed places are taken, you can join the waitlist.</p>
+                    <ul>
+                        <li>Check your registration status on the event page.</li>
+                        <li>Find your upcoming registrations in your dashboard.</li>
+                        <li>Cancel a future registration from My registrations if plans change.</li>
+                    </ul>
+                    <div class="step-detail-actions">
+                        <a class="text-link" href="<?= e(BASE_URL) ?>/?page=auth&amp;action=register">Create account <span aria-hidden="true">→</span></a>
+                        <a class="text-link" href="<?= e(BASE_URL) ?>/?page=auth&amp;action=login">Log in</a>
+                    </div>
+                </div>
+            </article>
+            <article class="step-detail" id="step-show-up" data-reveal>
+                <span class="step-detail-number" aria-hidden="true">03</span>
+                <div class="step-detail-content">
+                    <p class="eyebrow">Make the most of being there</p>
+                    <h3>Show up</h3>
+                    <p>Review the event details before you go. Arrive on time, follow the organiser’s guidance, and make space for everyone to take part.</p>
+                    <ul>
+                        <li>Use My registrations to check confirmed events and their details.</li>
+                        <li>Bring anything the organiser asks you to prepare.</li>
+                        <li>Be welcoming, respectful and ready to contribute to your community.</li>
+                    </ul>
+                    <?php if (isLoggedIn() && currentUser()['role'] !== 'admin'): ?>
+                        <a class="text-link" href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=registrations">View My registrations <span aria-hidden="true">→</span></a>
+                    <?php elseif (!isLoggedIn()): ?>
+                        <a class="text-link" href="<?= e(BASE_URL) ?>/?page=auth&amp;action=login">Log in to view registrations <span aria-hidden="true">→</span></a>
+                    <?php endif; ?>
+                </div>
             </article>
         </div>
     </div>
 </section>
 
-<?php if ($isHomePage): ?>
 <script defer src="<?= e(BASE_URL) ?>/js/home.js"></script>
-<?php endif; ?>
 <?php require APP_ROOT . '/app/views/layouts/footer.php'; ?>

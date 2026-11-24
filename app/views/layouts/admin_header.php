@@ -24,7 +24,10 @@
         </nav>
         <div class="admin-sidebar-links">
             <a href="<?= e(BASE_URL) ?>/?page=home&amp;action=index">View site</a>
-            <a href="<?= e(BASE_URL) ?>/?page=auth&amp;action=logout">Logout</a>
+            <form method="post" action="<?= e(BASE_URL) ?>/?page=auth&amp;action=logout">
+                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                <button type="submit">Logout</button>
+            </form>
         </div>
     </aside>
     <main class="admin-main">

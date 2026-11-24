@@ -56,12 +56,6 @@ function setOldInput(array $input): void
     $_SESSION['old_input'] = $input;
 }
 
-function old(string $key, mixed $default = ''): mixed
-{
-    $value = $_SESSION['old_input'][$key] ?? $default;
-    return is_string($value) || is_numeric($value) ? $value : $default;
-}
-
 function clearOldInput(): void
 {
     unset($_SESSION['old_input']);

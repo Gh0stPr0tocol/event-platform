@@ -1,7 +1,7 @@
 <?php
 
 define('APP_NAME', 'Tukutane');
-define('APP_DEBUG', true);
+define('APP_DEBUG', false);
 define('APP_ROOT', dirname(__DIR__));
 define('BASE_URL', '/event-platform/public');
 define('UPLOAD_URL', BASE_URL . '/images/events');

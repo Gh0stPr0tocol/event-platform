@@ -59,38 +59,6 @@ class Event
         ];
     }
 
-    public function search(string $keyword = '', int|string $regionId = '', int|string $categoryId = ''): array
-    {
-        $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
-                       GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
-                        WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
-                FROM events e
-                JOIN categories c ON c.id = e.category_id
-                JOIN venues v ON v.id = e.venue_id
-                JOIN regions r ON r.id = v.region_id
-                WHERE e.event_date >= CURDATE()';
-        $params = [];
-
-        if ($keyword !== '') {
-            $sql .= ' AND (e.title LIKE :keyword_title OR e.description LIKE :keyword_description)';
-            $params['keyword_title'] = '%' . $keyword . '%';
-            $params['keyword_description'] = '%' . $keyword . '%';
-        }
-        if ($regionId !== '' && ctype_digit((string) $regionId)) {
-            $sql .= ' AND r.id = :region_id';
-            $params['region_id'] = (int) $regionId;
-        }
-        if ($categoryId !== '' && ctype_digit((string) $categoryId)) {
-            $sql .= ' AND c.id = :category_id';
-            $params['category_id'] = (int) $categoryId;
-        }
-
-        $sql .= ' ORDER BY e.event_date ASC, e.start_time ASC';
-        $statement = $this->pdo->prepare($sql);
-        $statement->execute($params);
-        return $statement->fetchAll();
-    }
-
     public function filteredSearch(
         string $keyword = '',
         int|string $regionId = '',
@@ -291,13 +259,6 @@ class Event
     {
         $statement = $this->pdo->prepare('DELETE FROM events WHERE id = :id');
         $statement->execute(['id' => $id]);
-    }
-
-    public function registrationCount(int $id): int
-    {
-        $statement = $this->pdo->prepare('SELECT COUNT(*) FROM registrations WHERE event_id = :id');
-        $statement->execute(['id' => $id]);
-        return (int) $statement->fetchColumn();
     }
 
     public function confirmedCount(int $id): int

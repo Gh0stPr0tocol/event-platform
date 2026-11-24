@@ -30,8 +30,12 @@ class AdminController
     {
         requireAdmin();
         $filters=[
-            'search'=>trim($_GET['search']??''),'category_id'=>trim($_GET['category_id']??''),
-            'region_id'=>trim($_GET['region_id']??''),'time'=>trim($_GET['time']??''),
+            'search'=>$this->queryString('search'),
+            'category_id'=>$this->positiveQueryId($_GET['category_id']??''),
+            'region_id'=>$this->positiveQueryId($_GET['region_id']??''),
+            'time'=>in_array($this->queryString('time',20),['upcoming','past'],true)
+                ? $this->queryString('time',20)
+                : '',
         ];
         $pageParam = $_GET['p'] ?? '1';
         $page = is_string($pageParam)
@@ -82,22 +86,36 @@ class AdminController
 
     private function saveEvent(?int $id): void
     {
+        $current = $id !== null ? $this->events->find($id) : null;
+        if ($id !== null && !$current) {
+            setFlash('error', 'Event not found.');
+            redirect('?page=admin&action=events');
+        }
         $errors=[];$old=[
             'title'=>trim($_POST['title']??''),'description'=>trim($_POST['description']??''),
             'category_id'=>trim($_POST['category_id']??''),'venue_id'=>trim($_POST['venue_id']??''),
             'event_date'=>trim($_POST['event_date']??''),'start_time'=>trim($_POST['start_time']??''),
-            'capacity'=>trim($_POST['capacity']??''),'image'=>$_POST['existing_image']??null,
+            'capacity'=>trim($_POST['capacity']??''),'image'=>$current['image']??null,
         ];
         foreach(['title'=>'Title','description'=>'Description','category_id'=>'Category','venue_id'=>'Venue','event_date'=>'Date','start_time'=>'Start time','capacity'=>'Capacity'] as $key=>$label){
             if($old[$key]==='')$errors[$key]=$label.' is required.';
         }
+        validateLength($old['title'],'title',0,150,$errors);
+        validateLength($old['description'],'description',0,5000,$errors);
         if($old['capacity']!==''&&!ctype_digit($old['capacity']))$errors['capacity']='Capacity must be a whole number.';
-        elseif((int)$old['capacity']<1||(int)$old['capacity']>10000)$errors['capacity']='Capacity must be from 1 to 10000.';
-        if($old['event_date']!==''&&strtotime($old['event_date'])===false)$errors['event_date']='Enter a valid date.';
-        elseif($id===null&&$old['event_date']!==''&&$old['event_date']<date('Y-m-d'))$errors['event_date']='New events cannot be in the past.';
+        elseif($old['capacity']!==''&&((int)$old['capacity']<1||(int)$old['capacity']>10000))$errors['capacity']='Capacity must be from 1 to 10000.';
+        if($old['event_date']!==''){
+            $date=DateTimeImmutable::createFromFormat('!Y-m-d',$old['event_date']);
+            $dateErrors=DateTimeImmutable::getLastErrors();
+            if(!$date||$date->format('Y-m-d')!==$old['event_date']||($dateErrors!==false&&($dateErrors['warning_count']>0||$dateErrors['error_count']>0)))$errors['event_date']='Enter a valid date.';
+        }
+        if($old['event_date']!==''&&!isset($errors['event_date'])&&$id===null&&$old['event_date']<date('Y-m-d'))$errors['event_date']='New events cannot be in the past.';
+        if($old['start_time']!==''&&!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/',$old['start_time']))$errors['start_time']='Enter a valid start time.';
+        $categoryId=filter_var($old['category_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($old['category_id']!==''&&($categoryId===false||!$this->categories->find($categoryId)))$errors['category_id']='Choose a valid category.';
+        $venueId=filter_var($old['venue_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($old['venue_id']!==''&&($venueId===false||!$this->venues->find($venueId)))$errors['venue_id']='Choose a valid venue.';
         if($id!==null){
-            $current=$this->events->find($id);
-            if(!$current){setFlash('error','Event not found.');redirect('?page=admin&action=events');}
             $confirmed=$this->events->confirmedCount($id);
             if($old['capacity']!==''&&(int)$old['capacity']<$confirmed)$errors['capacity']="Capacity cannot be below the {$confirmed} confirmed registrations.";
         }
@@ -172,6 +190,7 @@ class AdminController
         $id=filter_input(INPUT_POST,'category_id',FILTER_VALIDATE_INT);$name=trim($_POST['name']??'');$errors=[];
         if(!$id){setFlash('error','Invalid category.');redirect('?page=admin&action=categories');}
         if($name==='')$errors['name']='Category name is required.';
+        elseif(mb_strlen($name)>100)$errors['name']='Category name is too long.';
         elseif($this->categories->nameExists($name,$id))$errors['name']='This category already exists.';
         if(!$errors){try{$this->categories->update($id,$name);setFlash('success','Category updated.');redirect('?page=admin&action=categories');}catch(Throwable $e){error_log($e->getMessage());$errors['general']='We could not update the category.';}}
         $categories=$this->categories->all();$editCategory=$this->categories->find($id);$old=['name'=>$name];require APP_ROOT.'/app/views/admin/categories.php';
@@ -203,6 +222,10 @@ class AdminController
         $data=['name'=>trim($_POST['name']??''),'address'=>trim($_POST['address']??''),'region_id'=>trim($_POST['region_id']??'')];
         $errors=[];$editVenue=null;
         foreach(['name'=>'Venue name','address'=>'Address','region_id'=>'County'] as $key=>$label)if($data[$key]==='')$errors[$key]=$label.' is required.';
+        validateLength($data['name'],'name',0,150,$errors);
+        validateLength($data['address'],'address',0,255,$errors);
+        $regionId=filter_var($data['region_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($data['region_id']!==''&&($regionId===false||!$this->regions->find($regionId)))$errors['region_id']='Choose a valid county.';
         if(!$errors){try{$this->venues->create($data);setFlash('success','Venue added.');redirect('?page=admin&action=venues');}catch(Throwable $e){error_log($e->getMessage());$errors['general']='We could not add the venue.';}}
         $venues=$this->venues->all();$regions=$this->regions->all();$old=$data;require APP_ROOT.'/app/views/admin/venues.php';
     }
@@ -214,7 +237,12 @@ class AdminController
         $id=filter_input(INPUT_POST,'venue_id',FILTER_VALIDATE_INT);
         $data=['name'=>trim($_POST['name']??''),'address'=>trim($_POST['address']??''),'region_id'=>trim($_POST['region_id']??'')];
         $errors=[];$editVenue=$id?$this->venues->find($id):null;
+        if(!$id||!$editVenue){setFlash('error','Invalid venue.');redirect('?page=admin&action=venues');}
         foreach(['name'=>'Venue name','address'=>'Address','region_id'=>'County'] as $key=>$label)if($data[$key]==='')$errors[$key]=$label.' is required.';
+        validateLength($data['name'],'name',0,150,$errors);
+        validateLength($data['address'],'address',0,255,$errors);
+        $regionId=filter_var($data['region_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($data['region_id']!==''&&($regionId===false||!$this->regions->find($regionId)))$errors['region_id']='Choose a valid county.';
         if(!$errors&&$id){try{$this->venues->update($id,$data);setFlash('success','Venue updated.');redirect('?page=admin&action=venues');}catch(Throwable $e){error_log($e->getMessage());$errors['general']='We could not update the venue.';}}
         $venues=$this->venues->all();$regions=$this->regions->all();$old=$data;require APP_ROOT.'/app/views/admin/venues.php';
     }
@@ -233,11 +261,29 @@ class AdminController
     public function registrations(): void
     {
         requireAdmin();
-        $filters=['event_id'=>trim($_GET['event_id']??''),'status'=>trim($_GET['status']??''),'search'=>trim($_GET['search']??'')];
+        $status=$this->queryString('status',20);
+        $filters=[
+            'event_id'=>$this->positiveQueryId($_GET['event_id']??''),
+            'status'=>in_array($status,REGISTRATION_STATUSES,true)?$status:'',
+            'search'=>$this->queryString('search'),
+        ];
         $page=max(1,(int)($_GET['page']??1));
         $result=$this->registrations->listAll($filters,$page,10);
         $eventList=$this->events->list([],1,1000)['items'];
         require APP_ROOT.'/app/views/admin/registrations.php';
+    }
+
+    private function queryString(string $key, int $maxLength = 200): string
+    {
+        $value=$_GET[$key]??'';
+        return is_string($value)?substr(trim($value),0,$maxLength):'';
+    }
+
+    private function positiveQueryId(mixed $value): string
+    {
+        if(!is_string($value)&&!is_int($value))return '';
+        $id=filter_var($value,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        return $id===false?'':(string)$id;
     }
 
     public function registrationStatus(): void

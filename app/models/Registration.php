@@ -85,24 +85,6 @@ class Registration
         return ['items' => $rows, 'total' => (int) $count->fetchColumn()];
     }
 
-    public function findById(int $id): ?array
-    {
-        $statement = $this->pdo->prepare(
-            'SELECT r.*, e.event_date, e.title, e.capacity,
-                    u.name AS user_name, u.email,
-                    v.name AS venue_name, reg.name AS region_name
-             FROM registrations r
-             JOIN events e ON e.id = r.event_id
-             JOIN users u ON u.id = r.user_id
-             JOIN venues v ON v.id = e.venue_id
-             JOIN regions reg ON reg.id = v.region_id
-             WHERE r.id = :id LIMIT 1'
-        );
-        $statement->execute(['id' => $id]);
-        $row = $statement->fetch();
-        return $row ?: null;
-    }
-
     public function cancel(int $registrationId, int $userId): void
     {
         $this->pdo->beginTransaction();

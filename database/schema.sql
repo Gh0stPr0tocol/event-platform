@@ -4,6 +4,7 @@ CREATE DATABASE IF NOT EXISTS event_platform
 USE event_platform;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS saved_events;
 DROP TABLE IF EXISTS registrations;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS venues;

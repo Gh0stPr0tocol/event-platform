@@ -35,7 +35,10 @@
                     <a class="nav-link<?= $registrationsActive ? ' is-active' : '' ?>"<?= $registrationsActive ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=registrations">My registrations</a>
                     <a class="nav-link<?= isActiveNav('dashboard', ['profile']) ? ' is-active' : '' ?>"<?= isActiveNav('dashboard', ['profile']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=dashboard&amp;action=profile">Profile</a>
                 <?php endif; ?>
-                <a class="nav-button nav-button-logout" href="<?= e(BASE_URL) ?>/?page=auth&amp;action=logout">Logout</a>
+                <form class="nav-logout-form" method="post" action="<?= e(BASE_URL) ?>/?page=auth&amp;action=logout">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <button class="nav-button nav-button-logout" type="submit">Logout</button>
+                </form>
             <?php else: ?>
                 <a class="nav-link<?= isActiveNav('auth', ['login']) ? ' is-active' : '' ?>"<?= isActiveNav('auth', ['login']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=auth&amp;action=login">Log in</a>
                 <a class="nav-button btn-nav<?= isActiveNav('auth', ['register']) ? ' is-active' : '' ?>"<?= isActiveNav('auth', ['register']) ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=auth&amp;action=register">Create account</a>

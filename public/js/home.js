@@ -1,4 +1,4 @@
-// Home-page interactions are deliberately kept separate from shared site scripts.
+// Home and event-list interactions stay separate from shared site scripts.
 document.addEventListener('DOMContentLoaded', () => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

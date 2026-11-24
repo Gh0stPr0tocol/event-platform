@@ -7,6 +7,20 @@ function validateRequired(string $value, string $label, array &$errors): void
     }
 }
 
+function validateLength(string $value, string $label, int $min, int $max, array &$errors): void
+{
+    if ($value === '') {
+        return;
+    }
+
+    $length = mb_strlen($value);
+    if ($length < $min || $length > $max) {
+        $errors[$label] = $min > 0
+            ? ucfirst(str_replace('_', ' ', $label)) . " must be between {$min} and {$max} characters."
+            : ucfirst(str_replace('_', ' ', $label)) . " must be {$max} characters or fewer.";
+    }
+}
+
 function validateEmail(string $email, array &$errors): void
 {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -36,9 +50,12 @@ function validateRegistration(array $input, callable $emailExists): array
 {
     $errors = [];
     validateRequired($input['name'] ?? '', 'name', $errors);
+    validateLength($input['name'] ?? '', 'name', 2, 100, $errors);
     validateRequired($input['email'] ?? '', 'email', $errors);
+    validateLength($input['email'] ?? '', 'email', 0, 150, $errors);
     validateEmail(trim($input['email'] ?? ''), $errors);
     validateRequired($input['phone'] ?? '', 'phone', $errors);
+    validateLength($input['phone'] ?? '', 'phone', 0, 20, $errors);
     validatePhone(trim($input['phone'] ?? ''), $errors);
     validateRequired($input['region_id'] ?? '', 'region', $errors);
     validatePassword((string) ($input['password'] ?? ''), $errors);

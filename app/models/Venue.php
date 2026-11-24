@@ -6,16 +6,20 @@ class Venue
 
     public function all(): array
     {
-        return $this->pdo->query(
+        $statement = $this->pdo->prepare(
             'SELECT v.*, r.name AS region_name FROM venues v
              JOIN regions r ON r.id=v.region_id ORDER BY r.name, v.name'
-        )->fetchAll();
+        );
+        $statement->execute();
+        return $statement->fetchAll();
     }
 
     public function list(int $page = 1, int $perPage = 10): array
     {
         $offset = ($page - 1) * $perPage;
-        $count = (int) $this->pdo->query('SELECT COUNT(*) FROM venues')->fetchColumn();
+        $countStatement = $this->pdo->prepare('SELECT COUNT(*) FROM venues');
+        $countStatement->execute();
+        $count = (int) $countStatement->fetchColumn();
         $statement = $this->pdo->prepare(
             'SELECT v.*, r.name AS region_name,
                     (SELECT COUNT(*) FROM events e WHERE e.venue_id = v.id) AS event_count
