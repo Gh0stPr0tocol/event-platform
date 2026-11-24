@@ -107,6 +107,17 @@ class Registration
     {
         $this->pdo->beginTransaction();
         try {
+            $reference = $this->pdo->prepare(
+                'SELECT event_id FROM registrations WHERE id = :id AND user_id = :uid'
+            );
+            $reference->execute(['id' => $registrationId, 'uid' => $userId]);
+            $eventId = $reference->fetchColumn();
+            if ($eventId === false) throw new DomainException('Registration not found.');
+
+            $eventLock = $this->pdo->prepare('SELECT id FROM events WHERE id = :id FOR UPDATE');
+            $eventLock->execute(['id' => (int) $eventId]);
+            if ($eventLock->fetchColumn() === false) throw new DomainException('Event not found.');
+
             $statement = $this->pdo->prepare(
                 'SELECT r.id, r.status, r.event_id, e.event_date
                  FROM registrations r JOIN events e ON e.id = r.event_id
@@ -152,6 +163,15 @@ class Registration
         }
         $this->pdo->beginTransaction();
         try {
+            $reference = $this->pdo->prepare('SELECT event_id FROM registrations WHERE id = :id');
+            $reference->execute(['id' => $registrationId]);
+            $eventId = $reference->fetchColumn();
+            if ($eventId === false) throw new DomainException('Registration not found.');
+
+            $eventLock = $this->pdo->prepare('SELECT id FROM events WHERE id = :id FOR UPDATE');
+            $eventLock->execute(['id' => (int) $eventId]);
+            if ($eventLock->fetchColumn() === false) throw new DomainException('Event not found.');
+
             $row = $this->pdo->prepare(
                 'SELECT r.event_id, r.status AS old_status, e.capacity FROM registrations r
                  JOIN events e ON e.id = r.event_id WHERE r.id = :id FOR UPDATE'
@@ -306,11 +326,18 @@ class Registration
 
     public function dashboardStats(): array
     {
-        $total = (int) $this->pdo->query('SELECT COUNT(*) FROM registrations')->fetchColumn();
-        $waitlisted = (int) $this->pdo->query("SELECT COUNT(*) FROM registrations WHERE status='waitlisted'")->fetchColumn();
-        $confirmed = (int) $this->pdo->query("SELECT COUNT(*) FROM registrations WHERE status='confirmed'")->fetchColumn();
-        $cancelled = (int) $this->pdo->query("SELECT COUNT(*) FROM registrations WHERE status='cancelled'")->fetchColumn();
-        $attended = (int) $this->pdo->query("SELECT COUNT(*) FROM registrations WHERE status='attended'")->fetchColumn();
+        $count = $this->pdo->prepare('SELECT COUNT(*) FROM registrations WHERE status = :status');
+        $totalQuery = $this->pdo->prepare('SELECT COUNT(*) FROM registrations');
+        $totalQuery->execute();
+        $total = (int) $totalQuery->fetchColumn();
+        $count->execute(['status' => STATUS_WAITLISTED]);
+        $waitlisted = (int) $count->fetchColumn();
+        $count->execute(['status' => STATUS_CONFIRMED]);
+        $confirmed = (int) $count->fetchColumn();
+        $count->execute(['status' => STATUS_CANCELLED]);
+        $cancelled = (int) $count->fetchColumn();
+        $count->execute(['status' => STATUS_ATTENDED]);
+        $attended = (int) $count->fetchColumn();
         return [
             'total' => $total,
             'confirmed' => $confirmed,

@@ -3,6 +3,23 @@ $title = $event ? 'Edit event' : 'Add event';
 $activeAdmin = 'events';
 require APP_ROOT . '/app/views/layouts/admin_header.php';
 $values = $old ?? [];
+$selectedVenueId = (string) ($values['venue_id'] ?? $event['venue_id'] ?? '');
+$selectedRegionId = '';
+foreach ($venues as $venue) {
+    if ((string) $venue['id'] === $selectedVenueId) {
+        $selectedRegionId = (string) $venue['region_id'];
+        break;
+    }
+}
+$venueData = array_map(
+    static fn (array $venue): array => [
+        'id' => (int) $venue['id'],
+        'name' => $venue['name'],
+        'region_id' => (int) $venue['region_id'],
+        'region_name' => $venue['region_name'],
+    ],
+    $venues
+);
 ?>
 <section class="admin-page">
     <div class="admin-page-heading">
@@ -34,11 +51,21 @@ $values = $old ?? [];
                 <?php if (!empty($errors['category_id'])): ?><span class="field-error"><?= e($errors['category_id']) ?></span><?php endif; ?>
             </div>
             <div class="form-field">
+                <label for="venue_region">County</label>
+                <select id="venue_region" data-venue-region>
+                    <option value="">All counties</option>
+                    <?php foreach ($regions as $region): ?>
+                        <option value="<?= (int) $region['id'] ?>" <?= (string) $region['id'] === $selectedRegionId ? 'selected' : '' ?>><?= e($region['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-field">
                 <label for="venue_id">Venue</label>
-                <select id="venue_id" name="venue_id" required>
+                <select id="venue_id" name="venue_id" required data-venue-select data-venues="<?= e(json_encode($venueData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?: '[]') ?>">
                     <option value="">Select venue</option>
                     <?php foreach ($venues as $venue): ?><option value="<?= (int) $venue['id'] ?>" <?= (string) $venue['id'] === (string) ($values['venue_id'] ?? '') ? 'selected' : '' ?>><?= e($venue['name']) ?> - <?= e($venue['region_name']) ?></option><?php endforeach; ?>
                 </select>
+                <p class="field-hint" data-venue-hint aria-live="polite" hidden></p>
                 <?php if (!empty($errors['venue_id'])): ?><span class="field-error"><?= e($errors['venue_id']) ?></span><?php endif; ?>
             </div>
             <div class="form-field">
@@ -68,5 +95,6 @@ $values = $old ?? [];
 </section>
 </main>
 </div>
+<script defer src="<?= e(BASE_URL) ?>/js/filters.js?v=<?= (int) filemtime(APP_ROOT . '/public/js/filters.js') ?>"></script>
 </body>
 </html>

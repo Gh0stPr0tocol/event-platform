@@ -43,7 +43,7 @@ class AdminController
     {
         requireAdmin();
         $event=null;$errors=[];$old=[];
-        $categories=$this->categories->all();$venues=$this->venues->all();
+        $categories=$this->categories->all();$venues=$this->venues->all();$regions=$this->regions->all();
         require APP_ROOT.'/app/views/admin/event_form.php';
     }
 
@@ -61,7 +61,7 @@ class AdminController
         $id=filter_input(INPUT_GET,'id',FILTER_VALIDATE_INT);
         $event=$id?$this->events->find($id):null;
         if(!$event){http_response_code(404);require APP_ROOT.'/app/views/errors/404.php';return;}
-        $errors=[];$old=$event;$categories=$this->categories->all();$venues=$this->venues->all();
+        $errors=[];$old=$event;$categories=$this->categories->all();$venues=$this->venues->all();$regions=$this->regions->all();
         require APP_ROOT.'/app/views/admin/event_form.php';
     }
 
@@ -123,7 +123,7 @@ class AdminController
                 redirect('?page=admin&action=events');
             }catch(Throwable $exception){error_log($exception->getMessage());$errors['general']='We could not save the event.';}
         }
-        $event=$id?$this->events->find($id):null;$categories=$this->categories->all();$venues=$this->venues->all();
+        $event=$id?$this->events->find($id):null;$categories=$this->categories->all();$venues=$this->venues->all();$regions=$this->regions->all();
         require APP_ROOT.'/app/views/admin/event_form.php';
     }
 

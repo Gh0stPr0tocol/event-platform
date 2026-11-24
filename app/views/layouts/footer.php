@@ -11,7 +11,8 @@
         </nav>
     </div>
 </footer>
-<script defer src="<?= e(BASE_URL) ?>/js/validation.js"></script>
+<script defer src="<?= e(BASE_URL) ?>/js/registration.js?v=<?= (int) filemtime(APP_ROOT . '/public/js/registration.js') ?>"></script>
+<script defer src="<?= e(BASE_URL) ?>/js/validation.js?v=<?= (int) filemtime(APP_ROOT . '/public/js/validation.js') ?>"></script>
 <script defer src="<?= e(BASE_URL) ?>/js/nav.js"></script>
 </body>
 </html>

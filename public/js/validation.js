@@ -412,19 +412,53 @@ function initForm(form, config) {
     });
 }
 
+function showToast(message, type = 'info') {
+    const toastType = ['success', 'error', 'info'].includes(type) ? type : 'info';
+    let region = document.querySelector('[data-toast-region]');
+
+    if (!region) {
+        region = document.createElement('div');
+        region.className = 'toast-region';
+        region.setAttribute('data-toast-region', '');
+        region.setAttribute('role', 'region');
+        region.setAttribute('aria-label', 'Notifications');
+        region.setAttribute('aria-live', 'polite');
+        region.setAttribute('aria-relevant', 'additions');
+        document.body.appendChild(region);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${toastType}`;
+    toast.setAttribute('role', toastType === 'error' ? 'alert' : 'status');
+    const text = document.createElement('p');
+    text.textContent = String(message);
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'toast-close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', 'Dismiss notification');
+    toast.append(text, close);
+    region.appendChild(toast);
+
+    const timeout = window.setTimeout(() => toast.remove(), 5000);
+    close.addEventListener('click', () => {
+        window.clearTimeout(timeout);
+        toast.remove();
+    });
+    return toast;
+}
+
+window.showToast = showToast;
+
 function initFlashMessages() {
     document.querySelectorAll('.flash').forEach((flash) => {
-        const close = document.createElement('button');
-        close.type = 'button';
-        close.className = 'flash-close';
-        close.textContent = '×';
-        close.setAttribute('aria-label', 'Dismiss message');
-        close.addEventListener('click', () => flash.remove());
-        flash.appendChild(close);
-
-        if (flash.classList.contains('flash-success')) {
-            window.setTimeout(() => flash.remove(), 6000);
-        }
+        const type = flash.classList.contains('flash-success')
+            ? 'success'
+            : (flash.classList.contains('flash-error') ? 'error' : 'info');
+        const message = flash.textContent.trim();
+        flash.remove();
+        if (message) showToast(message, type);
     });
 }
 

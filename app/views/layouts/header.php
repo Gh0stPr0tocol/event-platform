@@ -4,20 +4,25 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="<?= e(csrfToken()) ?>">
     <title><?= e($title ?? APP_NAME) ?> | <?= e(APP_NAME) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(BASE_URL) ?>/css/main.css?v=<?= (int) filemtime(APP_ROOT . '/public/css/main.css') ?>">
 </head>
-<body>
+<body
+    data-authenticated="<?= isLoggedIn() ? 'true' : 'false' ?>"
+    data-user-id="<?= isLoggedIn() ? (int) currentUser()['id'] : '' ?>"
+    data-saved-events-url="<?= e(BASE_URL) ?>/?page=events&amp;action=saved"
+    data-saved-events-import-url="<?= e(BASE_URL) ?>/?page=events&amp;action=saved-import">
 <header class="site-header">
     <div class="container header-inner">
         <a class="brand" href="<?= e(BASE_URL) ?>/?page=home&amp;action=index" aria-label="Tukutane home">
             <span>tukutane.</span>
         </a>
         <nav class="main-nav" aria-label="Main navigation">
-            <a class="nav-link<?= isActiveNav('events') ? ' is-active' : '' ?>"<?= isActiveNav('events') ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=events&amp;action=index">Explore events</a>
+            <a class="nav-link<?= isActiveNav('events') ? ' is-active' : '' ?>"<?= isActiveNav('events') ? ' aria-current="page"' : '' ?> href="<?= e(BASE_URL) ?>/?page=events&amp;action=index">Explore events <span class="saved-events-count" data-saved-count hidden>0</span></a>
             <a class="nav-link" data-nav-anchor="how-it-works" href="<?= e(BASE_URL) ?>/?page=home&amp;action=index#how-it-works">How it works</a>
             <?php if (isLoggedIn()):
                 $user = currentUser(); ?>

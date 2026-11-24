@@ -21,7 +21,8 @@ $authController = new AuthController(new User($pdo), new Region($pdo));
 $eventController = new EventController(
     new Event($pdo),
     new Region($pdo),
-    new Category($pdo)
+    new Category($pdo),
+    new SavedEvent($pdo)
 );
 
 $homeController = new HomeController(
@@ -77,6 +78,10 @@ switch ($page) {
             $eventController->index();
         } elseif ($action === 'show') {
             $eventController->show();
+        } elseif ($action === 'saved') {
+            $eventController->saved();
+        } elseif ($action === 'saved-import') {
+            $eventController->importSaved();
         } else {
             $knownRoute = false;
         }

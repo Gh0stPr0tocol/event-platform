@@ -2,15 +2,34 @@
 $title = 'Find community events';
 $isSearchPage = isset($events);
 $isHomePage = !$isSearchPage;
-$keyword = trim($_GET['keyword'] ?? '');
-$regionId = trim($_GET['region_id'] ?? '');
-$categoryValue = $_GET['category_id'] ?? $_GET['category'] ?? '';
+$keyword = is_string($keyword ?? null)
+    ? $keyword
+    : (is_string($_GET['keyword'] ?? null) ? trim($_GET['keyword']) : '');
+$regionId = is_string($regionId ?? null)
+    ? $regionId
+    : (is_string($_GET['region_id'] ?? null) ? trim($_GET['region_id']) : '');
+$categoryValue = $categoryId ?? ($_GET['category_id'] ?? $_GET['category'] ?? '');
 $categoryId = is_string($categoryValue) ? trim($categoryValue) : '';
-$dateFrom = trim($_GET['date_from'] ?? '');
-$dateTo = trim($_GET['date_to'] ?? '');
-$currentPage = $currentPage ?? 1;
-$eventPages = $eventPages ?? 1;
-$eventTotal = $eventTotal ?? 0;
+$dateFrom = is_string($dateFrom ?? null)
+    ? $dateFrom
+    : (is_string($_GET['date_from'] ?? null) ? trim($_GET['date_from']) : '');
+$dateTo = is_string($dateTo ?? null)
+    ? $dateTo
+    : (is_string($_GET['date_to'] ?? null) ? trim($_GET['date_to']) : '');
+$filterErrors = is_array($filterErrors ?? null) ? $filterErrors : [];
+$savedOnly = isset($savedOnly) ? (bool) $savedOnly : (($_GET['saved'] ?? '') === '1');
+$currentPage = max(1, (int) ($currentPage ?? 1));
+$eventPages = max(1, (int) ($eventPages ?? 1));
+$eventTotal = max(0, (int) ($eventTotal ?? 0));
+$activeFilterCount = isset($activeFilterCount)
+    ? (int) $activeFilterCount
+    : count(array_filter(
+        [$keyword, $regionId, $categoryId, $dateFrom, $dateTo],
+        static fn (string $value): bool => $value !== ''
+    )) + ($savedOnly ? 1 : 0);
+$activeFilterBaseCount = (int) ($activeFilterBaseCount ?? max(0, $activeFilterCount - ($savedOnly ? 1 : 0)));
+$firstResult = (int) ($firstResult ?? ($eventTotal === 0 ? 0 : (($currentPage - 1) * 9) + 1));
+$lastResult = (int) ($lastResult ?? min($currentPage * 9, $eventTotal));
 require APP_ROOT . '/app/views/layouts/header.php';
 ?>
 
@@ -25,9 +44,11 @@ require APP_ROOT . '/app/views/layouts/header.php';
             <?php endif; ?>
             <p>Discover community, student and county-level events across Kenya. Register for free and show up.</p>
         </div>
-        <div class="hero-art" aria-hidden="true">
-            <div class="hero-circle hero-circle-one"></div>
-            <div class="hero-circle hero-circle-two"></div>
+        <div class="hero-art">
+            <div class="hero-circle hero-circle-one">
+                <img class="hero-image" src="<?= e(BASE_URL . '/images/tree.avif') ?>" alt="Silhouette of branching palm trees at sunset across Kenya">
+            </div>
+            <div class="hero-circle hero-circle-two" aria-hidden="true"></div>
             <span class="hero-badge">Kenya, connected</span>
         </div>
     </div>
@@ -90,19 +111,50 @@ require APP_ROOT . '/app/views/layouts/header.php';
                 <div class="search-field">
                     <label for="date_from">From date</label>
                     <input id="date_from" name="date_from" type="date" value="<?= e($dateFrom) ?>">
+                    <?php if (!empty($filterErrors['date_from'])): ?>
+                        <p class="field-error" role="alert"><?= e($filterErrors['date_from']) ?></p>
+                    <?php endif; ?>
                 </div>
                 <div class="search-field">
                     <label for="date_to">To date</label>
                     <input id="date_to" name="date_to" type="date" value="<?= e($dateTo) ?>">
+                    <?php if (!empty($filterErrors['date_to'])): ?>
+                        <p class="field-error" role="alert"><?= e($filterErrors['date_to']) ?></p>
+                    <?php endif; ?>
                 </div>
             </div>
+            <input type="hidden" name="saved" value="1" data-saved-param<?= $savedOnly ? '' : ' disabled' ?>>
             <button class="button button-primary search-button" type="submit">Search</button>
+            <?php if ($isSearchPage): ?>
+                <a class="clear-filters" data-clear-filters href="<?= e(BASE_URL) ?>/?page=events&amp;action=index"<?= $activeFilterCount > 0 ? '' : ' hidden' ?>>Clear filters</a>
+            <?php endif; ?>
         </form>
-        <?php if ($isHomePage && $categories): ?>
+        <?php if ($categories): ?>
             <nav class="category-chips" aria-label="Browse events by category">
                 <span class="category-chips-label">Browse by category</span>
                 <?php foreach ($categories as $category): ?>
-                    <a class="category-chip" href="<?= e(BASE_URL) ?>/?page=events&amp;action=index&amp;category=<?= (int) $category['id'] ?>"><?= e($category['name']) ?></a>
+                    <?php
+                    $categoryQuery = ['page' => 'events', 'action' => 'index'];
+                    if ($isSearchPage) {
+                        foreach ([
+                            'keyword' => $keyword,
+                            'region_id' => $regionId,
+                            'date_from' => $dateFrom,
+                            'date_to' => $dateTo,
+                        ] as $key => $value) {
+                            if ($value !== '') {
+                                $categoryQuery[$key] = $value;
+                            }
+                        }
+                        if ($savedOnly) {
+                            $categoryQuery['saved'] = '1';
+                        }
+                    }
+                    $categoryQuery['category_id'] = (int) $category['id'];
+                    $categoryUrl = BASE_URL . '/index.php?' . http_build_query($categoryQuery);
+                    $activeCategory = $isSearchPage && $categoryId === (string) $category['id'];
+                    ?>
+                    <a class="category-chip<?= $activeCategory ? ' is-active' : '' ?>"<?= $activeCategory ? ' aria-current="page"' : '' ?> href="<?= e($categoryUrl) ?>"><?= e($category['name']) ?></a>
                 <?php endforeach; ?>
             </nav>
         <?php endif; ?>
@@ -110,42 +162,77 @@ require APP_ROOT . '/app/views/layouts/header.php';
 </section>
 
 <?php if ($isSearchPage): ?>
-<section class="events-section">
+<section class="events-section" id="events" aria-labelledby="events-heading">
     <div class="container">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Explore</p>
-                <h2>Events</h2>
+                <h2 id="events-heading">Events</h2>
             </div>
-            <span class="result-count"><?= (int) $eventTotal ?> <?= (int) $eventTotal === 1 ? 'event' : 'events' ?></span>
+            <div class="events-heading-actions">
+                <span class="result-count">
+                    <?= $eventTotal > 0
+                        ? 'Showing ' . $firstResult . '–' . $lastResult . ' of ' . $eventTotal . ' ' . ($eventTotal === 1 ? 'event' : 'events')
+                        : 'Showing 0 events' ?>
+                </span>
+                <span class="active-filter-count" data-active-filter-count data-base-count="<?= $activeFilterBaseCount ?>"<?= $activeFilterCount > 0 ? '' : ' hidden' ?>><?= $activeFilterCount ?> active <?= $activeFilterCount === 1 ? 'filter' : 'filters' ?></span>
+                <label class="saved-event-filter">
+                    <input type="checkbox" data-saved-filter<?= $savedOnly ? ' checked' : '' ?>>
+                    <span>Saved events only</span>
+                </label>
+            </div>
         </div>
         <?php if ($events): ?>
-            <div class="event-grid">
+            <div class="event-grid" data-saved-event-grid>
                 <?php foreach ($events as $event): ?>
                     <?php require APP_ROOT . '/app/views/events/_card.php'; ?>
                 <?php endforeach; ?>
             </div>
+            <p class="saved-filter-empty" data-saved-filter-empty hidden>No saved events on this page.</p>
         <?php else: ?>
             <div class="empty-state">
                 <h3>No events found</h3>
-                <p>Try a different keyword, county or category.</p>
+                <p>Try changing your filters to find an event.</p>
+                <?php if ($activeFilterCount > 0): ?>
+                    <a class="button button-secondary" href="<?= e(BASE_URL) ?>/?page=events&amp;action=index">Clear all filters</a>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
         <?php if ($eventPages > 1):
-            $filterQuery = http_build_query([
+            $paginationParams = [
                 'page' => 'events',
                 'action' => 'index',
+            ];
+            foreach ([
                 'keyword' => $keyword,
                 'region_id' => $regionId,
                 'category_id' => $categoryId,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
-            ]);
+            ] as $key => $value) {
+                if ($value !== '') {
+                    $paginationParams[$key] = $value;
+                }
+            }
+            if ($savedOnly) {
+                $paginationParams['saved'] = '1';
+            }
+            $paginationBase = BASE_URL . '/index.php?' . http_build_query($paginationParams);
         ?>
             <nav class="pagination" aria-label="Event pages">
+                <?php if ($currentPage > 1): ?>
+                    <a class="pagination-direction" rel="prev" href="<?= e($paginationBase . '&list_page=' . ($currentPage - 1) . '#events') ?>" aria-label="Previous page">Previous</a>
+                <?php endif; ?>
                 <?php for ($i = 1; $i <= $eventPages; $i++): ?>
-                    <a class="<?= $i === $currentPage ? 'active' : '' ?>" href="<?= e(BASE_URL) ?>/index.php?<?= e($filterQuery) ?>&amp;list_page=<?= $i ?>"><?= $i ?></a>
+                    <?php if ($i === $currentPage): ?>
+                        <span class="active" aria-current="page" aria-label="Page <?= $i ?>"><?= $i ?></span>
+                    <?php else: ?>
+                        <a href="<?= e($paginationBase . '&list_page=' . $i . '#events') ?>" aria-label="Page <?= $i ?>"><?= $i ?></a>
+                    <?php endif; ?>
                 <?php endfor; ?>
+                <?php if ($currentPage < $eventPages): ?>
+                    <a class="pagination-direction" rel="next" href="<?= e($paginationBase . '&list_page=' . ($currentPage + 1) . '#events') ?>" aria-label="Next page">Next</a>
+                <?php endif; ?>
             </nav>
         <?php endif; ?>
     </div>

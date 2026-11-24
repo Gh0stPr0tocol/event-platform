@@ -101,7 +101,7 @@ class Event
         int $perPage = 9
     ): array {
         $page = max(1, $page);
-        $offset = ($page - 1) * $perPage;
+        $perPage = max(1, $perPage);
         $where = ['e.event_date >= CURDATE()'];
         $params = [];
 
@@ -110,21 +110,21 @@ class Event
             $params['keyword_title'] = '%' . $keyword . '%';
             $params['keyword_description'] = '%' . $keyword . '%';
         }
-        if ($regionId !== '' && ctype_digit((string) $regionId)) {
+        if ($regionId !== '' && ctype_digit((string) $regionId) && (int) $regionId > 0) {
             $where[] = 'r.id = :region_id';
             $params['region_id'] = (int) $regionId;
         }
-        if ($categoryId !== '' && ctype_digit((string) $categoryId)) {
+        if ($categoryId !== '' && ctype_digit((string) $categoryId) && (int) $categoryId > 0) {
             $where[] = 'c.id = :category_id';
             $params['category_id'] = (int) $categoryId;
         }
-        if ($dateFrom !== '' && strtotime($dateFrom) !== false) {
+        if ($dateFrom !== '' && $this->isValidIsoDate($dateFrom)) {
             $where[] = 'e.event_date >= :date_from';
-            $params['date_from'] = date('Y-m-d', strtotime($dateFrom));
+            $params['date_from'] = $dateFrom;
         }
-        if ($dateTo !== '' && strtotime($dateTo) !== false) {
+        if ($dateTo !== '' && $this->isValidIsoDate($dateTo)) {
             $where[] = 'e.event_date <= :date_to';
-            $params['date_to'] = date('Y-m-d', strtotime($dateTo));
+            $params['date_to'] = $dateTo;
         }
 
         $join = ' FROM events e
@@ -136,6 +136,9 @@ class Event
         $countStatement = $this->pdo->prepare('SELECT COUNT(*)' . $join);
         $countStatement->execute($params);
         $total = (int) $countStatement->fetchColumn();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $pages);
+        $offset = ($page - 1) * $perPage;
 
         $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
                        GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
@@ -153,9 +156,18 @@ class Event
         return [
             'items' => $statement->fetchAll(),
             'total' => $total,
-            'pages' => max(1, (int) ceil($total / $perPage)),
+            'pages' => $pages,
             'page' => $page,
         ];
+    }
+
+    private function isValidIsoDate(string $value): bool
+    {
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        $errors = DateTimeImmutable::getLastErrors();
+        return $date !== false
+            && $date->format('Y-m-d') === $value
+            && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
     }
 
     public function list(array $filters = [], int $page = 1, int $perPage = 10): array
@@ -215,12 +227,18 @@ class Event
     {
         $statement = $this->pdo->prepare(
             'SELECT e.*, c.name AS category_name, v.name AS venue_name, v.address, r.name AS region_name,
-                    GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
-                     WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
+                    COALESCE(confirmed.confirmed_count, 0) AS confirmed_count,
+                    GREATEST(e.capacity - COALESCE(confirmed.confirmed_count, 0), 0) AS seats_remaining
              FROM events e
              JOIN categories c ON c.id = e.category_id
              JOIN venues v ON v.id = e.venue_id
              JOIN regions r ON r.id = v.region_id
+             LEFT JOIN (
+                 SELECT event_id, COUNT(*) AS confirmed_count
+                 FROM registrations
+                 WHERE status = "confirmed"
+                 GROUP BY event_id
+             ) confirmed ON confirmed.event_id = e.id
              WHERE e.id = :id LIMIT 1'
         );
         $statement->execute(['id' => $id]);
@@ -309,13 +327,26 @@ class Event
 
     public function statistics(): array
     {
-        $total = (int) $this->pdo->query('SELECT COUNT(*) FROM events')->fetchColumn();
-        $upcoming = (int) $this->pdo->query('SELECT COUNT(*) FROM events WHERE event_date >= CURDATE()')->fetchColumn();
-        $capacity = (int) $this->pdo->query('SELECT COALESCE(SUM(capacity), 0) FROM events WHERE event_date >= CURDATE()')->fetchColumn();
-        $filled = (int) $this->pdo->query(
+        $totalQuery = $this->pdo->prepare('SELECT COUNT(*) FROM events');
+        $totalQuery->execute();
+        $total = (int) $totalQuery->fetchColumn();
+
+        $upcomingQuery = $this->pdo->prepare('SELECT COUNT(*) FROM events WHERE event_date >= CURDATE()');
+        $upcomingQuery->execute();
+        $upcoming = (int) $upcomingQuery->fetchColumn();
+
+        $capacityQuery = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(capacity), 0) FROM events WHERE event_date >= CURDATE()'
+        );
+        $capacityQuery->execute();
+        $capacity = (int) $capacityQuery->fetchColumn();
+
+        $filledQuery = $this->pdo->prepare(
             "SELECT COUNT(*) FROM registrations r JOIN events e ON e.id = r.event_id
              WHERE e.event_date >= CURDATE() AND r.status = 'confirmed'"
-        )->fetchColumn();
+        );
+        $filledQuery->execute();
+        $filled = (int) $filledQuery->fetchColumn();
         return [
             'total' => $total,
             'upcoming' => $upcoming,
