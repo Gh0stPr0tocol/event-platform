@@ -33,8 +33,13 @@ class AdminController
             'search'=>trim($_GET['search']??''),'category_id'=>trim($_GET['category_id']??''),
             'region_id'=>trim($_GET['region_id']??''),'time'=>trim($_GET['time']??''),
         ];
-        $page=max(1,(int)($_GET['page']??1));
+        $pageParam = $_GET['p'] ?? '1';
+        $page = is_string($pageParam)
+            ? filter_var($pageParam, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : false;
+        $page = $page === false ? 1 : $page;
         $result=$this->events->list($filters,$page,10);
+        $page=$result['page'];
         $categories=$this->categories->all();$regions=$this->regions->all();
         require APP_ROOT.'/app/views/admin/events.php';
     }

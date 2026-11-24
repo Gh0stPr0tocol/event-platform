@@ -53,7 +53,7 @@ require APP_ROOT . '/app/views/layouts/admin_header.php';
     <?php $totalPages = max(1, (int) ceil($result['total'] / 10)); if ($totalPages > 1): ?>
         <nav class="pagination" aria-label="Event pages">
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <a class="<?= $i === $page ? 'active' : '' ?>" href="<?= e(BASE_URL) ?>/?page=admin&amp;action=events&amp;search=<?= e(rawurlencode($filters['search'])) ?>&amp;category_id=<?= e($filters['category_id']) ?>&amp;region_id=<?= e($filters['region_id']) ?>&amp;time=<?= e($filters['time']) ?>&amp;page=<?= $i ?>"><?= $i ?></a>
+                <a class="<?= $i === $page ? 'active' : '' ?>" href="<?= e(BASE_URL) ?>/?page=admin&amp;action=events&amp;search=<?= e(rawurlencode($filters['search'])) ?>&amp;category_id=<?= e($filters['category_id']) ?>&amp;region_id=<?= e($filters['region_id']) ?>&amp;time=<?= e($filters['time']) ?>&amp;p=<?= $i ?>"><?= $i ?></a>
             <?php endfor; ?>
         </nav>
     <?php endif; ?>

@@ -172,7 +172,8 @@ class Event
 
     public function list(array $filters = [], int $page = 1, int $perPage = 10): array
     {
-        $offset = ($page - 1) * $perPage;
+        $page = max(1, $page);
+        $perPage = max(1, $perPage);
         $where = ['1=1'];
         $params = [];
 
@@ -208,6 +209,11 @@ class Event
         }
         $count->execute();
 
+        $total = (int) $count->fetchColumn();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+
         $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
                        GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
                         WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining'
@@ -220,7 +226,12 @@ class Event
         $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
         $statement->execute();
 
-        return ['items' => $statement->fetchAll(), 'total' => (int) $count->fetchColumn()];
+        return [
+            'items' => $statement->fetchAll(),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $totalPages,
+        ];
     }
 
     public function find(int $id): ?array
