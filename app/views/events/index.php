@@ -58,39 +58,43 @@ require APP_ROOT . '/app/views/layouts/header.php';
         <form class="event-search" method="get" action="<?= e(BASE_URL) ?>/index.php">
             <input type="hidden" name="page" value="events">
             <input type="hidden" name="action" value="index">
-            <div class="search-field search-keyword">
-                <label for="keyword">Keyword</label>
-                <input id="keyword" name="keyword" type="search" value="<?= e($keyword) ?>" placeholder="Search events">
+            <div class="event-search-fields">
+                <div class="search-field search-keyword">
+                    <label for="keyword">Keyword</label>
+                    <input id="keyword" name="keyword" type="search" value="<?= e($keyword) ?>" placeholder="Search events">
+                </div>
+                <div class="search-field">
+                    <label for="region_id">County</label>
+                    <select id="region_id" name="region_id">
+                        <option value="">Any county</option>
+                        <?php foreach ($regions as $region): ?>
+                            <option value="<?= (int) $region['id'] ?>" <?= (string) $region['id'] === $regionId ? 'selected' : '' ?>>
+                                <?= e($region['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="search-field">
+                    <label for="category_id">Category</label>
+                    <select id="category_id" name="category_id">
+                        <option value="">All categories</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?= (int) $category['id'] ?>" <?= (string) $category['id'] === $categoryId ? 'selected' : '' ?>>
+                                <?= e($category['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
-            <div class="search-field">
-                <label for="region_id">County</label>
-                <select id="region_id" name="region_id">
-                    <option value="">Any county</option>
-                    <?php foreach ($regions as $region): ?>
-                        <option value="<?= (int) $region['id'] ?>" <?= (string) $region['id'] === $regionId ? 'selected' : '' ?>>
-                            <?= e($region['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="search-field">
-                <label for="category_id">Category</label>
-                <select id="category_id" name="category_id">
-                    <option value="">All categories</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= (int) $category['id'] ?>" <?= (string) $category['id'] === $categoryId ? 'selected' : '' ?>>
-                            <?= e($category['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="search-field">
-                <label for="date_from">From date</label>
-                <input id="date_from" name="date_from" type="date" value="<?= e($dateFrom) ?>">
-            </div>
-            <div class="search-field">
-                <label for="date_to">To date</label>
-                <input id="date_to" name="date_to" type="date" value="<?= e($dateTo) ?>">
+            <div class="event-search-dates">
+                <div class="search-field">
+                    <label for="date_from">From date</label>
+                    <input id="date_from" name="date_from" type="date" value="<?= e($dateFrom) ?>">
+                </div>
+                <div class="search-field">
+                    <label for="date_to">To date</label>
+                    <input id="date_to" name="date_to" type="date" value="<?= e($dateTo) ?>">
+                </div>
             </div>
             <button class="button button-primary search-button" type="submit">Search</button>
         </form>

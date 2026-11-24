@@ -352,6 +352,7 @@ h3 { font-weight: 700; }
 
 .event-search {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     padding: 16px;
     background: var(--white);
@@ -360,7 +361,15 @@ h3 { font-weight: 700; }
     box-shadow: var(--shadow);
 }
 
-.search-field { display: grid; gap: 6px; }
+.event-search-fields,
+.event-search-dates {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    min-width: 0;
+}
+
+.search-field { display: grid; gap: 6px; min-width: 0; }
 .search-field label,
 .form-field label {
     font-size: 14px;
@@ -400,14 +409,14 @@ input:focus, select:focus, a:focus-visible, button:focus-visible {
     font-weight: 600;
 }
 
-.category-chip {
+.category-chips .category-chip {
     display: inline-flex;
     align-items: center;
     min-height: 40px;
-    padding: 7px 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--white);
+    padding: .4rem .9rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 9999px;
+    background: #FFFFFF;
     color: var(--primary);
     font-size: 14px;
     font-weight: 600;
@@ -415,12 +424,13 @@ input:focus, select:focus, a:focus-visible, button:focus-visible {
     transition: color .15s ease, background-color .15s ease, border-color .15s ease;
 }
 
-.category-chip:hover {
+.category-chips .category-chip:hover {
     border-color: var(--primary);
     background: #EAF3ED;
+    text-decoration: none;
 }
 
-.category-chip:focus-visible {
+.category-chips .category-chip:focus-visible {
     outline: 3px solid rgba(47, 111, 179, .45);
     outline-offset: 3px;
 }
@@ -894,8 +904,8 @@ textarea.valid {
     .hero-art { display: block; }
     .home-stat span { font-size: 14px; }
     .next-event-card { grid-template-columns: 1fr minmax(280px, .8fr); align-items: center; padding: 32px; }
-    .event-search { grid-template-columns: 2fr 1fr 1fr; align-items: end; }
-    .event-search .search-button { grid-column: 1 / -1; }
+    .event-search-fields { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
+    .event-search-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .search-button { width: auto; }
     .event-grid { grid-template-columns: repeat(2, 1fr); }
     .steps-grid { grid-template-columns: repeat(3, 1fr); }
