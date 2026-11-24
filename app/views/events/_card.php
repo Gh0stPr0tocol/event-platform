@@ -1,4 +1,4 @@
-<article class="event-card">
+<article class="event-card" data-reveal>
     <a class="event-card-image" href="<?= e(BASE_URL) ?>/?page=events&amp;action=show&amp;id=<?= (int) $event['id'] ?>" aria-label="View <?= e($event['title']) ?>">
         <?php
         $imageFile = !empty($event['image'])

@@ -205,6 +205,15 @@ class Registration
         return (int) $statement->fetchColumn();
     }
 
+    public function confirmedTotal(): int
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM registrations WHERE status = :status'
+        );
+        $statement->execute(['status' => STATUS_CONFIRMED]);
+        return (int) $statement->fetchColumn();
+    }
+
     public function statsForUser(int $userId): array
     {
         $statement = $this->pdo->prepare(

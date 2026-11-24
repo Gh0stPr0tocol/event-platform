@@ -20,7 +20,8 @@ class EventController
     {
         $keyword = trim($_GET['keyword'] ?? '');
         $regionId = trim($_GET['region_id'] ?? '');
-        $categoryId = trim($_GET['category_id'] ?? '');
+        $categoryValue = $_GET['category_id'] ?? $_GET['category'] ?? '';
+        $categoryId = is_string($categoryValue) ? trim($categoryValue) : '';
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo = trim($_GET['date_to'] ?? '');
         $page = max(1, (int) ($_GET['list_page'] ?? 1));

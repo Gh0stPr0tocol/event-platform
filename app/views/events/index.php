@@ -1,9 +1,11 @@
 <?php
 $title = 'Find community events';
 $isSearchPage = isset($events);
+$isHomePage = !$isSearchPage;
 $keyword = trim($_GET['keyword'] ?? '');
 $regionId = trim($_GET['region_id'] ?? '');
-$categoryId = trim($_GET['category_id'] ?? '');
+$categoryValue = $_GET['category_id'] ?? $_GET['category'] ?? '';
+$categoryId = is_string($categoryValue) ? trim($categoryValue) : '';
 $dateFrom = trim($_GET['date_from'] ?? '');
 $dateTo = trim($_GET['date_to'] ?? '');
 $currentPage = $currentPage ?? 1;
@@ -16,7 +18,11 @@ require APP_ROOT . '/app/views/layouts/header.php';
     <div class="container hero-grid">
         <div class="hero-copy">
             <p class="eyebrow">Find your people. Make a difference.</p>
-            <h1>Good things happen when we come together.</h1>
+            <?php if ($isHomePage): ?>
+                <h1>Good things happen when we <span class="hero-word" data-rotating-word aria-hidden="true"><span data-word-display>learn.</span><span class="hero-word-reserve">volunteer.</span></span><span class="visually-hidden">learn.</span></h1>
+            <?php else: ?>
+                <h1>Good things happen when we come together.</h1>
+            <?php endif; ?>
             <p>Discover community, student and county-level events across Kenya. Register for free and show up.</p>
         </div>
         <div class="hero-art" aria-hidden="true">
@@ -26,6 +32,25 @@ require APP_ROOT . '/app/views/layouts/header.php';
         </div>
     </div>
 </section>
+
+<?php if ($isHomePage): ?>
+<section class="home-stats" aria-label="Tukutane at a glance" data-count-section>
+    <div class="container home-stats-grid">
+        <div class="home-stat">
+            <strong data-count-up="<?= (int) $homeStats['upcoming_events'] ?>"><?= number_format((int) $homeStats['upcoming_events']) ?></strong>
+            <span>Upcoming events</span>
+        </div>
+        <div class="home-stat">
+            <strong data-count-up="<?= (int) $homeStats['counties_with_events'] ?>"><?= number_format((int) $homeStats['counties_with_events']) ?></strong>
+            <span>Counties with events</span>
+        </div>
+        <div class="home-stat">
+            <strong data-count-up="<?= (int) $homeStats['confirmed_registrations'] ?>"><?= number_format((int) $homeStats['confirmed_registrations']) ?></strong>
+            <span>Confirmed registrations</span>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <section class="search-section" aria-labelledby="search-heading">
     <div class="container">
@@ -69,6 +94,14 @@ require APP_ROOT . '/app/views/layouts/header.php';
             </div>
             <button class="button button-primary search-button" type="submit">Search</button>
         </form>
+        <?php if ($isHomePage && $categories): ?>
+            <nav class="category-chips" aria-label="Browse events by category">
+                <span class="category-chips-label">Browse by category</span>
+                <?php foreach ($categories as $category): ?>
+                    <a class="category-chip" href="<?= e(BASE_URL) ?>/?page=events&amp;action=index&amp;category=<?= (int) $category['id'] ?>"><?= e($category['name']) ?></a>
+                <?php endforeach; ?>
+            </nav>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -114,6 +147,38 @@ require APP_ROOT . '/app/views/layouts/header.php';
     </div>
 </section>
 <?php else: ?>
+<?php if ($nextEvent): ?>
+    <?php
+    $secondsUntilEvent = max(0, strtotime($nextEvent['event_date'] . ' ' . $nextEvent['start_time']) - time());
+    $initialDays = intdiv($secondsUntilEvent, 86400);
+    $initialHours = intdiv($secondsUntilEvent % 86400, 3600);
+    $initialMinutes = intdiv($secondsUntilEvent % 3600, 60);
+    $initialSeconds = $secondsUntilEvent % 60;
+    ?>
+    <section class="next-event-section" aria-labelledby="next-event-heading">
+        <div class="container">
+            <article class="next-event-card">
+                <div>
+                    <p class="eyebrow">Mark your calendar</p>
+                    <h2 id="next-event-heading">Next event</h2>
+                    <h3><?= e($nextEvent['title']) ?></h3>
+                    <p class="next-event-meta"><?= e(formatDate($nextEvent['event_date'])) ?> · <?= e(formatTime($nextEvent['start_time'])) ?></p>
+                    <p class="next-event-meta"><?= e($nextEvent['venue_name']) ?>, <?= e($nextEvent['region_name']) ?></p>
+                </div>
+                <div class="countdown" data-countdown-target="<?= e($nextEvent['event_date'] . 'T' . $nextEvent['start_time']) ?>" aria-label="Time until event starts">
+                    <div class="countdown-units" data-countdown-units<?= $secondsUntilEvent > 0 ? '' : ' hidden' ?>>
+                        <span><strong data-countdown-days><?= $initialDays ?></strong><small>Days</small></span>
+                        <span><strong data-countdown-hours><?= str_pad((string) $initialHours, 2, '0', STR_PAD_LEFT) ?></strong><small>Hours</small></span>
+                        <span><strong data-countdown-minutes><?= str_pad((string) $initialMinutes, 2, '0', STR_PAD_LEFT) ?></strong><small>Minutes</small></span>
+                        <span><strong data-countdown-seconds><?= str_pad((string) $initialSeconds, 2, '0', STR_PAD_LEFT) ?></strong><small>Seconds</small></span>
+                    </div>
+                    <p class="countdown-starting" data-countdown-started<?= $secondsUntilEvent > 0 ? ' hidden' : '' ?>>Starting now</p>
+                    <a class="button button-primary" href="<?= e(BASE_URL) ?>/?page=events&amp;action=show&amp;id=<?= (int) $nextEvent['id'] ?>">View event</a>
+                </div>
+            </article>
+        </div>
+    </section>
+<?php endif; ?>
 <section class="events-section">
     <div class="container">
         <div class="section-heading">
@@ -144,17 +209,17 @@ require APP_ROOT . '/app/views/layouts/header.php';
         <p class="eyebrow">Simple and free</p>
         <h2>Show up. Get involved.</h2>
         <div class="steps-grid">
-            <article class="step-card">
+            <article class="step-card" data-reveal>
                 <span class="step-number">1</span>
                 <h3>Find an event</h3>
                 <p>Search by keyword, county or category to find what matters to you.</p>
             </article>
-            <article class="step-card">
+            <article class="step-card" data-reveal>
                 <span class="step-number">2</span>
                 <h3>Register free</h3>
                 <p>Create an account and reserve your place in a few quick steps.</p>
             </article>
-            <article class="step-card">
+            <article class="step-card" data-reveal>
                 <span class="step-number">3</span>
                 <h3>Show up</h3>
                 <p>Meet your neighbours and contribute to something meaningful.</p>
@@ -163,4 +228,7 @@ require APP_ROOT . '/app/views/layouts/header.php';
     </div>
 </section>
 
+<?php if ($isHomePage): ?>
+<script defer src="<?= e(BASE_URL) ?>/js/home.js"></script>
+<?php endif; ?>
 <?php require APP_ROOT . '/app/views/layouts/footer.php'; ?>

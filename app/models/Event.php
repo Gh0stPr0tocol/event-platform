@@ -23,6 +23,42 @@ class Event
         return $statement->fetchAll();
     }
 
+    public function nextUpcoming(): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,
+                    GREATEST(e.capacity - (SELECT COUNT(*) FROM registrations
+                     WHERE event_id = e.id AND status = "confirmed"), 0) AS seats_remaining
+             FROM events e
+             JOIN categories c ON c.id = e.category_id
+             JOIN venues v ON v.id = e.venue_id
+             JOIN regions r ON r.id = v.region_id
+             WHERE TIMESTAMP(e.event_date, e.start_time) >= NOW()
+             ORDER BY e.event_date ASC, e.start_time ASC
+             LIMIT 1'
+        );
+        $statement->execute();
+        $event = $statement->fetch();
+        return $event ?: null;
+    }
+
+    public function homeStats(): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT COUNT(*) AS upcoming_events, COUNT(DISTINCT v.region_id) AS counties_with_events
+             FROM events e
+             JOIN venues v ON v.id = e.venue_id
+             WHERE e.event_date >= CURDATE()'
+        );
+        $statement->execute();
+        $stats = $statement->fetch();
+
+        return [
+            'upcoming_events' => (int) $stats['upcoming_events'],
+            'counties_with_events' => (int) $stats['counties_with_events'],
+        ];
+    }
+
     public function search(string $keyword = '', int|string $regionId = '', int|string $categoryId = ''): array
     {
         $sql = 'SELECT e.*, c.name AS category_name, v.name AS venue_name, r.name AS region_name,

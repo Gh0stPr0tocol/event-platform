@@ -27,7 +27,8 @@ $eventController = new EventController(
 $homeController = new HomeController(
     new Event($pdo),
     new Region($pdo),
-    new Category($pdo)
+    new Category($pdo),
+    new Registration($pdo)
 );
 
 $registrationController = new RegistrationController(
