@@ -33,7 +33,7 @@ $lastResult = (int) ($lastResult ?? min($currentPage * 9, $eventTotal));
 require APP_ROOT . '/app/views/layouts/header.php';
 ?>
 
-<section class="hero">
+<section class="hero<?= $isHomePage ? ' hero-home' : '' ?>">
     <div class="container hero-grid">
         <div class="hero-copy">
             <p class="eyebrow">Find your people. Make a difference.</p>
